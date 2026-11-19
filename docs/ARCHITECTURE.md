@@ -13,6 +13,10 @@ The 2ICs and squadron HQs see in one place what they still have to do. JAC HQ se
 - **Google**: members use private Gmail accounts. The relevant sheets are shared by link, so their CSV export is readable without a login.
 - **Hosting**: a small VPS run by a JAC member.
 
+## Today: static page on GitHub Pages
+
+`index.html` reads every sheet live from its CSV export and writes entries through a Google Form (see ENTRIES-FORM.md). That covers everything except the forum and real permissions. The steps below add a backend for those two.
+
 ## Data sources
 
 | Source | How it is read | How often |
