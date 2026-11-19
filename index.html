@@ -155,6 +155,7 @@ textarea{height:auto;padding:12px;font-family:var(--f-mono);font-size:12px;line-
 .crew .ch2{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
 .slot{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;align-items:center}
 .slot select{width:100%}
+.slot input.role{width:100%}
 .slot .fill{grid-column:2;font-size:12px;color:var(--caution);margin-top:-8px}
 .fields{padding:16px;display:grid;gap:12px;border-top:1px solid var(--line)}
 .fields label{display:grid;gap:4px;font-size:13px;color:var(--fg3)}
@@ -215,6 +216,34 @@ thead th{border-top:0;color:var(--fg3);font-weight:400;font-size:13px}
 .foot{padding:12px 16px;border-top:1px solid var(--line);color:var(--fg3);font-size:13px}
 .skel{height:12px;border-radius:6px;background:var(--raised);margin:16px}
 
+/* account and sign-in */
+.acct{display:flex;align-items:center;gap:12px;font-size:13px;white-space:nowrap}
+.acct span{color:var(--fg2)}
+.gate{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start;max-width:880px}
+@media (max-width:760px){.gate{grid-template-columns:minmax(0,1fr)}}
+.gate .card{padding:20px;display:grid;gap:12px;align-content:start}
+.gate .card.off{opacity:.55}
+.gate .stepn{font-family:var(--f-mono);font-size:12px;color:var(--fg3)}
+.gate form{display:grid;gap:12px}
+.gate label{display:grid;gap:4px;font-size:13px;color:var(--fg3)}
+.gate input{width:100%}
+.gate .err{color:var(--neg);font-size:13px}
+@media (max-width:760px){.acct{order:2}}
+
+.subtabs{display:flex;gap:24px;border-bottom:1px solid var(--line);overflow-x:auto;margin-top:-16px}
+.subtabs a{display:flex;align-items:center;gap:8px;padding:8px 0;color:var(--fg2);text-decoration:none;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.subtabs a:hover{color:var(--fg)}
+.subtabs a[aria-current="page"]{color:var(--fg);border-color:var(--accent)}
+.subtabs .dot{width:6px;height:6px;border-radius:50%;background:var(--caution)}
+.subtabs .mono{color:var(--fg3)}
+/* the receipt is a document: always paper, in both themes */
+.receipt{background:#ffffff;color:#171717;border:1px solid #d4d4d4;border-radius:4px;padding:20px 24px;display:grid;gap:8px;font-family:var(--f-mono);box-shadow:0 8px 24px rgba(0,0,0,.08)}
+.receipt .rh{font-family:var(--f-ui);font-weight:600;font-size:15px}
+.receipt hr{border:0;border-top:1px solid #e5e5e5;margin:4px 0;width:100%}
+.receipt .rl{display:grid;grid-template-columns:112px minmax(0,1fr) 104px minmax(0,1fr);gap:4px 12px;align-items:baseline;font-size:13px}
+.receipt .rl span{color:#737373;font-size:11px;letter-spacing:.02em}
+.receipt .rl b{font-weight:500;overflow-wrap:anywhere}
+@media (max-width:520px){.receipt .rl{grid-template-columns:96px minmax(0,1fr)}}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(24px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:8px 16px;border-radius:8px;font-size:13px;z-index:40}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -225,6 +254,7 @@ thead th{border-top:0;color:var(--fg3);font-weight:400;font-size:13px}
     <div class="logo">JAC Cockpit <span>4th IB</span></div>
     <nav class="tabs" id="tabs" aria-label="Views"></nav>
     <div class="sync busy" id="sync" role="status"><i aria-hidden="true"></i><span>Loading sheets</span></div>
+    <div class="acct" id="acct"></div>
   </div>
 </header>
 <div class="wrap"><main id="view"></main></div>
@@ -242,18 +272,21 @@ const SHEETS={
   ua:{id:'13GOwG_tfkFuXcJt1tMu4f8RNaGRAvTpKhBbYcAqGZzA',gid:'290771582',name:'Unit Attendance, JAC tab'},
   roster:{id:'1GRENwxiY7DC5fLbue12XAeLsa_wsnKCOy3vvGzcY_Ok',gid:'1766701879',name:'Unit roster, ORBAT 2.0'},
   logi:{id:'17yeIDGcKKAs13syNLe6sg5K-bp4pAMTe-urv2u-vutk',gid:'0',name:'Logistics, Requested Logistics tab'},
-  reinsert:{id:'1UoaMaeLbR8tPd2YKGLoAhHnZkDz2YAPpcvuES6SK5xY',gid:'234200102',name:'Casualty and reinsert reports, Reinsert Responses tab'}
+  reinsert:{id:'1UoaMaeLbR8tPd2YKGLoAhHnZkDz2YAPpcvuES6SK5xY',gid:'234200102',name:'Casualty and reinsert reports, Reinsert Responses tab'},
+  receipt:{id:'17yeIDGcKKAs13syNLe6sg5K-bp4pAMTe-urv2u-vutk',gid:'739710028',name:'Logistics, Receipt tab (package weights and sizes)'},
+  limits:{id:'17yeIDGcKKAs13syNLe6sg5K-bp4pAMTe-urv2u-vutk',gid:'1903594608',name:'Logistics, Order Limit Checker tab'}
 };
 const LINKS={
   forumAttendance:'https://4thib.co.uk/attendance.php',
   fillInForm:'https://docs.google.com/forms/d/e/1FAIpQLSfXKIxywpt97-TY4RPfiEkRkHPpJabPV4M0RmwbuXVIiL7Ifg/viewform',
   casualtyForm:'https://docs.google.com/forms/d/1J_x8zZpaG2V3pEYcbOe8SUOfNlE79XdWEmiF9Da3Vtw/viewform'
 };
-/* Shared entries (staffing, checklists, settings, cycle). Until the "JAC Cockpit entries" Google Form exists
-   they are kept in this browser only. Fill in when the form is set up, see docs/ENTRIES-FORM.md:
-   {post:'https://docs.google.com/forms/d/e/<form id>/formResponse',
-    fields:{type:'entry.<n>',key:'entry.<n>',payload:'entry.<n>'}, sheet:{id:'<responses sheet id>',gid:'<gid>'}} */
-const ENTRIES=null;
+/* Where the cockpit server runs (sign-in, data for members, entries). GitHub Pages only shows the public ORBAT
+   and links here. Set once the server is deployed, e.g. 'https://cockpit.example.org' */
+const SERVER_URL='';
+let MODE='static';   // 'server' when this page is served by the cockpit server
+let ME=null;         // signed-in person: {name, email, forum_uid, forum_display, orbat, roles, member}
+const isMember=()=>MODE==='server'&&!!ME?.member;
 
 const csvUrl=s=>`https://docs.google.com/spreadsheets/d/${s.id}/export?format=csv&gid=${s.gid}`;
 const sheetUrl=s=>`https://docs.google.com/spreadsheets/d/${s.id}/edit?gid=${s.gid}`;
@@ -325,25 +358,32 @@ function parseRoster(rows){
   return out;
 }
 function parseLogi(rows){return rows.slice(2).filter(r=>(r[0]||'').trim()&&r.slice(1).some(x=>(x||'').trim())).map(r=>{const g=k=>(r[k]||'').trim();
-  return{ref:g(0),rec:toIso(g(1)),req:g(2),ship:g(3),from:g(6),to:g(7),type:g(8),eta:toIso(g(9)),coy:g(10),link:g(11),flight:g(12),status:g(13),notes:g(14)}})}
+  return{ref:g(0),rec:toIso(g(1)),req:g(2),ship:g(3),pc:g(4),pcs:g(5),from:g(6),to:g(7),type:g(8),eta:toIso(g(9)),coy:g(10),link:g(11),flight:g(12),status:g(13),notes:g(14)}})}
+// Receipt tab: header lines and the package table (Package | Unloaded Weight | Dimensions)
+function parseReceipt(rows){let hr=-1,hc=-1;rows.forEach((r,i)=>r.forEach((c,j)=>{if(c.trim()==='Package'&&hr<0){hr=i;hc=j}}));
+  const packages={};if(hr>=0)for(let r=hr+1;r<rows.length;r++){const n=cell(rows,r,hc);if(!n||/CHANGED/i.test(n))break;packages[n.toLowerCase()]={name:n,weight:parseFloat(cell(rows,r,hc+1))||null,dims:cell(rows,r,hc+2)}}
+  return{unit:[cell(rows,6,2)||'Royal Air Force, RAF Odiham',cell(rows,7,2)||'No. 18 Squadron'],packages}}
+// Order Limit Checker tab: Category | Limit | Manual Override | Detection Pattern
+function parseLimits(rows){const i=rows.findIndex(r=>(r[0]||'').trim()==='Category');if(i<0)return[];const out=[];
+  for(let r=i+1;r<rows.length;r++){const c=cell(rows,r,0);if(!c)break;out.push({cat:c,limit:+cell(rows,r,1)||0,pattern:cell(rows,r,3)})}return out}
 function parseReinsert(rows){return rows.slice(1).filter(r=>toIso(r[1]||'')).map(r=>({date:toIso(r[1]),call:(r[2]||'').trim(),reinserts:+r[3]||0,extracted:+r[4]||0}))}
-// Form timestamps come as dd/mm/yyyy hh:mm:ss; turn them into ISO so they sort with local entries
-const formTs=s=>{const m=(s||'').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})/);return m?`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}T${m[4].padStart(2,'0')}:${m[5]}:${m[6]}`:s};
-function parseEntries(rows){return rows.slice(1).filter(r=>r[1]).map(r=>{let p=null;try{p=JSON.parse(r[3]||'null')}catch(e){}return{ts:formTs(r[0]),type:(r[1]||'').trim(),key:(r[2]||'').trim(),payload:p}})}
-const PARSERS={orbat:parseOrbat,ua:parseUA,roster:parseRoster,logi:parseLogi,reinsert:parseReinsert};
+const PARSERS={orbat:parseOrbat,ua:parseUA,roster:parseRoster,logi:parseLogi,reinsert:parseReinsert,receipt:parseReceipt,limits:parseLimits};
 
 /* ---------- data store, loaded in the background ---------- */
-const D={orbat:null,ua:null,roster:null,logi:null,reinsert:null,read:null,errors:{}};
+const D={orbat:null,ua:null,roster:null,logi:null,reinsert:null,receipt:null,limits:null,read:null,errors:{}};
 let PEOPLE=[];
 function applyData(){PEOPLE=(D.orbat?.people||[]).map((p,i)=>({...p,id:'p'+i,done:new Set(p.done)}))}
+// The ORBAT is public. Everything else is read through the server for signed-in members only.
+const sourceUrl=k=>MODE==='server'?`/api/sheet/${k}`:csvUrl(SHEETS[k]);
 async function loadAll(){
   setSync('busy','Loading sheets');
-  const jobs=Object.entries(SHEETS).map(async([k,s])=>{const r=await fetch(csvUrl(s),{cache:'no-store'});if(!r.ok)throw new Error(r.status);D[k]=PARSERS[k](parseCSV(await r.text()));delete D.errors[k]});
-  if(ENTRIES)jobs.push(fetch(csvUrl(ENTRIES.sheet),{cache:'no-store'}).then(r=>r.text()).then(t=>{REMOTE=parseEntries(parseCSV(t))}));
+  const keys=isMember()?Object.keys(SHEETS):['orbat'];
+  const jobs=keys.map(async k=>{const r=await fetch(sourceUrl(k),{cache:'no-store',credentials:'same-origin'});if(!r.ok)throw new Error(r.status);D[k]=PARSERS[k](parseCSV(await r.text()));delete D.errors[k]});
+  if(isMember())jobs.push(fetch('/api/entries',{cache:'no-store',credentials:'same-origin'}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(j=>{ENTRY_LIST=j}));
   const res=await Promise.allSettled(jobs);
-  res.forEach((r,i)=>{if(r.status==='rejected'){const k=Object.keys(SHEETS)[i]||'entries';D.errors[k]=String(r.reason?.message||r.reason)}});
+  res.forEach((r,i)=>{if(r.status==='rejected'){const k=keys[i]||'entries';D.errors[k]=String(r.reason?.message||r.reason)}});
   D.read=new Date().toISOString();applyData();
-  store('jac-cache-v1',{orbat:D.orbat,ua:D.ua,roster:D.roster,logi:D.logi,reinsert:D.reinsert,read:D.read});
+  store('jac-cache-v1',isMember()?{orbat:D.orbat,ua:D.ua,roster:D.roster,logi:D.logi,reinsert:D.reinsert,receipt:D.receipt,limits:D.limits,read:D.read}:{orbat:D.orbat,read:D.read});
   const bad=Object.keys(D.errors).length;
   setSync(bad?'err':'',bad?`${bad} source${bad>1?'s':''} failed, ${new Date(D.read).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}`:`Updated ${new Date(D.read).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}`);
   route(true);
@@ -352,16 +392,31 @@ function setSync(cls,txt){const el=$('#sync');el.className='sync '+cls;el.queryS
 const ready=k=>!!D[k];
 
 /* ---------- entries: staffing, checklists, settings, cycle ---------- */
-let LOCAL=store('jac-entries-v1')||[],REMOTE=[];
-function entry(type,key){const all=[...REMOTE,...LOCAL].filter(e=>e.type===type&&e.key===key);if(!all.length)return null;
-  return all.sort((a,b)=>String(a.ts).localeCompare(String(b.ts))).pop().payload}
-function entriesOf(type){const m={};[...REMOTE,...LOCAL].filter(e=>e.type===type).sort((a,b)=>String(a.ts).localeCompare(String(b.ts))).forEach(e=>m[e.key]=e.payload);return m}
+/* Entries are stored on the server. The newest row per type and key wins. */
+let ENTRY_LIST=[];
+function entry(type,key){let p=null;ENTRY_LIST.forEach(e=>{if(e.type===type&&e.key===key)p=e.payload});return p}
+function entriesOf(type){const m={};ENTRY_LIST.forEach(e=>{if(e.type===type)m[e.key]=e.payload});return m}
 async function saveEntry(type,key,payload){
-  const e={ts:new Date().toISOString(),type,key,payload};LOCAL=[...LOCAL.filter(x=>!(x.type===type&&x.key===key)),e];store('jac-entries-v1',LOCAL);
-  if(ENTRIES){const body=new URLSearchParams({[ENTRIES.fields.type]:type,[ENTRIES.fields.key]:key,[ENTRIES.fields.payload]:JSON.stringify(payload)});
-    try{await fetch(ENTRIES.post,{method:'POST',mode:'no-cors',body});return'shared'}catch(err){toast('Saved here only. Could not reach the entries form');return'local'}}
-  return'local';
+  if(!isMember()){toast('Sign in to save');return false}
+  const r=await fetch('/api/entries',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({type,key,payload})});
+  if(!r.ok){const j=await r.json().catch(()=>({}));toast(j.detail||'Could not save');return false}
+  const{ts}=await r.json();ENTRY_LIST.push({ts,type,key,payload});return true;
 }
+
+/* ---------- who may do what, from the signed-in person's posts (the server checks again) ---------- */
+const scopes=()=>new Set((ME?.roles||[]).map(r=>r.scope));
+const SQ_OF={'18':'No. 18','662':'No. 662','ALIC':'ALIC'};
+function canEdit(type,key=''){if(!isMember())return false;const s=scopes();if(s.has('all'))return true;
+  if(type==='staffing'){const u=key.split('|').pop();return s.has('fl:'+u)||s.has('sq:No. 18')}
+  if(type==='setting')return key.startsWith('cas|')?(s.has('fl:'+key.split('|')[1])||s.has('sq:No. 18')):s.has('sq:No. 18');
+  if(type==='check')return[...s].some(x=>x!=='self');
+  if(type==='roles')return s.has('sq:'+SQ_OF[key]);return false}
+function inScope(u){const s=scopes();if(s.has('all'))return true;if(!u)return false;
+  if(u.startsWith('18'))return s.has('sq:No. 18')||s.has('fl:'+u);return s.has('sq:'+(SQ_OF[u]||u))}
+function canManage(p){if(!isMember())return false;const s=scopes();if(s.has('all'))return true;const sq=baseSq(p);
+  if(s.has('sq:'+sq))return true;const fc=sq==='No. 18'?'18'+((p.fl||'').match(/^([ABC])/)||[])[1]:null;return!!fc&&s.has('fl:'+fc)}
+const myName=()=>ME?.orbat?.[0]?pname(ME.orbat[0]):'';
+const myFlight=()=>[...scopes()].find(x=>x.startsWith('fl:'))?.slice(3)||null;
 
 /* ---------- deployment cycle (shared entry "cycle") ---------- */
 const CYCLE_DEFAULT={anchor:'2026-08-31',blocks:[
@@ -432,19 +487,27 @@ function rosterDiff(){if(!D.roster||!PEOPLE.length)return[];
 /* Reinsert and casualty reports: the loadmasters file them, the Flight IC or 2IC makes sure (setting per flight) */
 const casOwner=u=>entry('setting','cas|'+u)||'Flight 2IC';
 function reinsertStatus(u,date){if(!D.reinsert)return null;if(weekOf(date)?.b.kind!=='op')return{need:false};
-  const st=entry('staffing',date+'|'+u),calls=st?st.crews.filter(c=>Object.values(c.slots).some(v=>v&&v!=='GAPPED')).map(c=>c.call):null;
+  const st=entry('staffing',date+'|'+u),calls=st?st.crews.filter(c=>c.slots.some(s=>s.who&&s.who!=='GAPPED')).map(c=>c.call):null;
   const got=D.reinsert.filter(r=>r.date===date).map(r=>r.call);
   const missing=calls?calls.filter(c=>!got.includes(c)):(got.length?[]:['at least one callsign']);
   return{need:true,got,missing}}
 
 /* ---------- staffing ---------- */
-const CREW_DEFAULT=()=>[{call:'Vortex 1-1',ch:'LR Channel 31',slots:{Pilot:'',CoPilot:'',Loadmaster:''}},{call:'Vortex 1-2',ch:'LR Channel 32',slots:{Pilot:'',CoPilot:'',Loadmaster:''}}];
-const SLOT_LABEL={Pilot:'Pilot',CoPilot:'Co-Pilot',Loadmaster:'Loadmaster'};
-const personByKey=k=>PEOPLE.find(p=>p.id===k||pname(p)===k);
+/* A crew is a callsign, a radio net and a list of positions. Pilot, Co-Pilot and Loadmaster are the base;
+   extra positions (Shadow, WSOp, ...) can be added. "who" is free text: suggestions come from the ORBAT,
+   but people from outside JAC can be entered too. */
+const BASE_ROLES=['Pilot','Co-Pilot','Loadmaster'];
+const EXTRA_ROLES=['Shadow','WSOp','Shadow Pilot','Shadow Loadmaster','Door Gunner','Medic'];
+const newCrew=(n)=>({call:`Vortex 1-${n}`,ch:`LR Channel ${30+n}`,slots:BASE_ROLES.map(role=>({role,who:''}))});
+const CREW_DEFAULT=()=>[newCrew(1),newCrew(2)];
+// One person can have several ORBAT rows (e.g. JAC 2IC and a pilot in C Flight); prefer the row with a No. 18 flight
+const rowsOf=v=>{const k=(v||'').trim().toLowerCase();if(!k)return[];const a=PEOPLE.filter(p=>pname(p).toLowerCase()===k);return a.length?a:PEOPLE.filter(p=>p.name.toLowerCase()===k)};
+const findPerson=v=>{const r=rowsOf(v);return r.find(p=>homeFlight(p))||r[0]||null};
+const inFlight=(v,u)=>rowsOf(v).some(p=>unitOf(p)===u);
 function homeFlight(p){const u=unitOf(p);return u&&u.startsWith('18')?u:null}
 function fillIns(){const out=[];Object.entries(entriesOf('staffing')).forEach(([key,st])=>{const[date,u]=key.split('|');if(!st)return;
-  st.crews.forEach(c=>Object.entries(c.slots).forEach(([slot,v])=>{if(!v||v==='GAPPED')return;const p=PEOPLE.find(x=>pname(x)===v);
-    const home=p?homeFlight(p):null;if(!p||home!==u)out.push({date,u,call:c.call,slot,who:v,from:p?(home?UNIT_LABEL[home]:p.sq):'outside the JAC ORBAT'})}))});
+  st.crews.forEach(c=>c.slots.forEach(({role,who})=>{if(!who||who==='GAPPED')return;const p=findPerson(who);
+    const home=p?homeFlight(p):null;if(!inFlight(who,u))out.push({date,u,call:c.call,slot:role,who:p?pname(p):who,from:p?(home?UNIT_LABEL[home]:p.sq):'outside the JAC ORBAT'})}))});
   return out.sort((a,b)=>a.date.localeCompare(b.date))}
 
 /* ---------- app state ---------- */
@@ -454,31 +517,29 @@ const saveDone=()=>store('jac-done-v1',[...state.done]);
 /* ---------- tasks ---------- */
 function buildTasks(){const t=[],today=TODAY(),from=iso(new Date(NOW().getTime()-28*DAY));
   if(D.ua){opNights(from,iso(new Date(NOW().getTime()-DAY))).forEach(d=>{[FLIGHT_OF_DAY[WD(d)],'662','ALIC'].forEach(u=>{const s=uaStatus(u,d);
-    if(s==='missing'||s==='partial')t.push({id:`ua-${d}-${u}`,title:`${UNIT_LABEL[u]} ${s==='partial'?'only partly in':'not in'} the Unit Attendance sheet`,ctx:`Unit attendance · ${dayLabel(d)}`,due:deadline48(d),act:'ua'})})});
+    if(s==='missing'||s==='partial')t.push({u,id:`ua-${d}-${u}`,title:`${UNIT_LABEL[u]} ${s==='partial'?'only partly in':'not in'} the Unit Attendance sheet`,ctx:`Unit attendance · ${dayLabel(d)}`,due:deadline48(d),act:'ua'})})});
     const fut={};D.ua.future.forEach(f=>{const k=f.sec+f.date;(fut[k]=fut[k]||{...f,n:0}).n++});
-    Object.values(fut).forEach(f=>t.push({id:`uaf-${f.sec}-${f.date}`,title:`${f.sec.replace('-',' ')}: ${f.n} entr${f.n>1?'ies':'y'} for ${shortDate(f.date)} before the night`,ctx:'Unit attendance · probably the wrong column',due:null,act:'ua'}));
+    Object.values(fut).forEach(f=>t.push({u:f.sec.split('-')[0],id:`uaf-${f.sec}-${f.date}`,title:`${f.sec.replace('-',' ')}: ${f.n} entr${f.n>1?'ies':'y'} for ${shortDate(f.date)} before the night`,ctx:'Unit attendance · probably the wrong column',due:null,act:'ua'}));
     const d=NOW();for(let s=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),1));s<d;s=new Date(s.getTime()+DAY)){if(s.getUTCDay()!==0)continue;
       const wk=Math.ceil(s.getUTCDate()/7),wkStart=iso(new Date(s.getTime()-6*DAY));if(!['op','pdt'].includes(weekOf(wkStart)?.b.kind))continue;
-      const v=D.ua.hq[wk]||[];if(v.some(x=>!x))t.push({id:`uahq-${iso(s)}`,title:`Enter JAC HQ attendance for week ${wk}`,ctx:`Unit attendance · JAC HQ · week ending ${shortDate(s)}`,due:new Date(s.getTime()+2*DAY),act:'ua'})}}
+      const v=D.ua.hq[wk]||[];if(v.some(x=>!x))t.push({u:'HQ',id:`uahq-${iso(s)}`,title:`Enter JAC HQ attendance for week ${wk}`,ctx:`Unit attendance · JAC HQ · week ending ${shortDate(s)}`,due:new Date(s.getTime()+2*DAY),act:'ua'})}}
   if(D.reinsert)opNights(from,iso(new Date(NOW().getTime()-DAY))).forEach(d=>{const u=FLIGHT_OF_DAY[WD(d)],r=reinsertStatus(u,d);
-    if(r?.need&&r.missing.length)t.push({id:`rein-${d}-${u}`,title:`${UNIT_LABEL[u]}: reinsert report missing for ${r.missing.join(', ')}`,ctx:`Casualty and reinsert form · ${dayLabel(d)} · ${casOwner(u)} makes sure`,due:deadline48(d),act:'cas'})});
-  fillIns().filter(f=>f.date<=today&&f.date>=from).forEach(f=>t.push({id:`fill-${f.date}-${f.u}-${f.who}`,title:`${f.who} filled in for ${UNIT_LABEL[f.u]}: log the fill-in`,ctx:`Fill-in form · ${dayLabel(f.date)} · from ${f.from}`,due:deadline48(f.date),act:'fill'}));
-  if(D.logi)D.logi.filter(o=>!o.status&&o.eta&&o.eta<today).forEach(o=>t.push({id:'logi-'+o.ref,title:`Logistics ${o.ref} still open after ETA`,ctx:`Requested Logistics · ${o.flight||'no flight'} · ETA ${shortDate(o.eta)}`,due:null,act:'logi'}));
-  const rd=rosterDiff();if(rd.length)t.push({id:'roster-'+rd.length,title:`Update the unit roster: ${rd.length} change${rd.length>1?'s':''}`,ctx:'ORBAT 2.0 · feeds the Unit Attendance names',due:null,act:'roster'});
+    if(r?.need&&r.missing.length)t.push({u,id:`rein-${d}-${u}`,title:`${UNIT_LABEL[u]}: reinsert report missing for ${r.missing.join(', ')}`,ctx:`Casualty and reinsert form · ${dayLabel(d)} · ${casOwner(u)} makes sure`,due:deadline48(d),act:'cas'})});
+  fillIns().filter(f=>f.date<=today&&f.date>=from).forEach(f=>t.push({u:f.u,who:f.who,id:`fill-${f.date}-${f.u}-${f.who}`,title:`${f.who} filled in for ${UNIT_LABEL[f.u]}: log the fill-in`,ctx:`Fill-in form · ${dayLabel(f.date)} · from ${f.from}`,due:deadline48(f.date),act:'fill'}));
+  if(D.logi)D.logi.filter(o=>!o.status&&o.eta&&o.eta<today).forEach(o=>t.push({u:{Alpha:'18A',Bravo:'18B',Charlie:'18C'}[o.flight]||'HQ',id:'logi-'+o.ref,title:`Logistics ${o.ref} still open after ETA`,ctx:`Requested Logistics · ${o.flight||'no flight'} · ETA ${shortDate(o.eta)}`,due:null,act:'logi'}));
+  const rd=rosterDiff();if(rd.length)t.push({u:'HQ',id:'roster-'+rd.length,title:`Update the unit roster: ${rd.length} change${rd.length>1?'s':''}`,ctx:'ORBAT 2.0 · feeds the Unit Attendance names',due:null,act:'roster'});
   return t.sort((a,b)=>(a.due||Infinity)-(b.due||Infinity));
 }
 const isOver=t=>t.due&&t.due<NOW();
 
 /* ---------- views ---------- */
 const VIEWS={orbat:['ORBAT',renderOrbat],admin:['Admin',renderAdmin],prep:['Night prep',renderPrep],loa:['LOA check',renderLoa],setup:['Setup',renderSetup]};
-function renderTabs(cur){const over=buildTasks().filter(t=>!state.done.has(t.id)&&isOver(t)).length;
+function renderTabs(cur){const over=(isMember()?buildTasks().filter(t=>inScope(t.u)||(t.who&&t.who===myName())):[]).filter(t=>!state.done.has(t.id)&&isOver(t)).length;
   $('#tabs').innerHTML=Object.entries(VIEWS).map(([k,[l]])=>`<a href="#${k}" ${k===cur?'aria-current="page"':''}>${l}${k==='admin'&&over?`<span class="n" aria-label="${over} overdue">${over}</span>`:''}</a>`).join('')}
 const loadingBlock=what=>`<div class="card"><p class="empty" style="margin:0">Loading ${esc(what)} from the sheet</p><div class="skel" style="width:60%"></div><div class="skel" style="width:40%"></div></div>`;
 const failBlock=k=>D.errors[k]?`<div class="banner">Could not read ${esc(SHEETS[k].name)}. <a class="link" href="${sheetUrl(SHEETS[k])}" target="_blank" rel="noopener">Open the sheet</a></div>`:'';
 
 /* ===== ORBAT ===== */
-const VIEWERS={jac2ic:{label:'JAC 2IC',can:p=>true},oc18:{label:'No. 18 Squadron OC',can:p=>baseSq(p)==='No. 18'},ic18c:{label:'No. 18 C Flight IC',can:p=>baseSq(p)==='No. 18'&&/^C Flight/.test(p.fl)},
-  ic662:{label:'No. 662 Squadron IC',can:p=>baseSq(p)==='No. 662'},icalic:{label:'ALIC Squadron IC',can:p=>baseSq(p)==='ALIC'},member:{label:'Aircrew member',can:p=>false}};
 function personRow(p){const g=progress(p);let txt='',cls='';
   if(!g.k)txt='';else if(g.unknown){txt='Rank not in SOP';cls='warn'}else if(g.acting&&g.acting.length){txt=`${g.acting.length} to SAcr`;cls='warn'}
   else if(g.curMiss.length){txt=`${g.curMiss.length} behind`;cls='warn'}else if(!g.next)txt='';
@@ -501,8 +562,7 @@ function renderOrbat(){
   const active=P.filter(p=>!/Reserve|ELOA/.test(p.sq)&&p.sq!=='JAC HQ').length;
   return `
   <section class="orbat-top"><div><h1>ORBAT</h1><p class="sub">Joint Aviation Command, ${active} active members. ${esc(weekLabel(NOW()))}</p></div>
-    <div class="controls"><div class="seg" role="group" aria-label="Filter">${[['all','Everyone'],['gaps','Behind on courses'],['ready','Ready for promotion']].map(([k,l])=>`<button aria-pressed="${state.filter===k}" data-filter="${k}">${l}</button>`).join('')}</div>
-      <select id="viewer" aria-label="Viewing as">${Object.entries(VIEWERS).map(([k,v])=>`<option value="${k}" ${k===state.viewer?'selected':''}>Viewing as ${v.label}</option>`).join('')}</select></div></section>
+    <div class="controls"><div class="seg" role="group" aria-label="Filter">${[['all','Everyone'],['gaps','Behind on courses'],['ready','Ready for promotion']].map(([k,l])=>`<button aria-pressed="${state.filter===k}" data-filter="${k}">${l}</button>`).join('')}</div></div></section>
   <section class="orbat">
     <div class="units-col">
       ${hq.length?`<div class="card sqn"><div class="sh"><h2>JAC HQ</h2><span class="meta">Air Wing command</span></div>${hq.map(personRow).join('')}</div>`:''}
@@ -521,7 +581,7 @@ function renderOrbat(){
     </aside>
   </section>`}
 function renderSheet(){const root=$('#sheet-root'),p=PEOPLE.find(x=>x.id===state.open);if(!p){root.innerHTML='';return}
-  const g=progress(p),can=VIEWERS[state.viewer].can(p),L=g.k?LADDERS[g.k]:null;
+  const g=progress(p),can=canManage(p),L=g.k?LADDERS[g.k]:null;
   const reqRow=c=>{const ok=p.done.has(c);return `<div class="req ${ok?'ok':''}"><span class="ic" aria-hidden="true"></span><span>${esc(c)}</span><span>${!ok&&can?`<button class="link" data-nominate="${esc(c)}">Nominate</button>`:''}</span></div>`};
   let body='';
   if(!g.k)body=`<p class="note-line">No rank ladder in SOP 9-7 for ${esc(p.sq)}</p>`;
@@ -539,7 +599,7 @@ function renderSheet(){const root=$('#sheet-root'),p=PEOPLE.find(x=>x.id===state
     <div><span class="mono" style="color:var(--fg3)">${esc(p.rank||'No rank')}</span><h2 id="sheet-title">${esc(p.name)}</h2></div>
     <dl class="kv2"><dt>Unit</dt><dd>${esc(p.sq)}</dd><dt>Flight</dt><dd>${esc(p.fl||'–')}</dd><dt>Position</dt><dd>${esc(p.pos||'–')}</dd>${p.wings?`<dt>Wings</dt><dd class="mono">${esc(p.wings)}</dd>`:''}</dl>
     ${body}<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">${promo}${p.uid?`<a class="link" href="https://4thib.co.uk/user-${esc(p.uid)}.html" target="_blank" rel="noopener">Forum profile</a>`:''}</div>
-    <p class="note-line">${can?'Course results are entered in the course tracker. Promotions are posted in the forum Admin Centre':'Read only. Managing this member needs their squadron or flight command'}</p></aside>`;
+    <p class="note-line">${can?'Course results are entered in the course tracker. Promotions are posted in the forum Admin Centre':isMember()?'Read only. Managing this member needs their squadron or flight command':'Sign in to manage members'}</p></aside>`;
   root.querySelector('.x').focus()}
 
 /* ===== Admin ===== */
@@ -553,7 +613,7 @@ function nightCard(d){const over=deadline48(d)<NOW(),fl=FLIGHT_OF_DAY[WD(d)];
     const cls=!D.ua?'':miss.length?(over?'late':'open'):'ok';return `<div class="u ${cls}"><i aria-hidden="true"></i><span>${UNIT_LABEL[u]}</span><span>${!D.ua?'…':miss.length?esc(miss.join(', ')):'Done'}</span></div>`};
   return `<div class="card night"><div class="d"><b>${dayLabel(d)}</b><span class="meta">${esc(weekLabel(d))}</span></div><div class="units">${[fl,'662','ALIC'].map(line).join('')}</div></div>`}
 function renderAdmin(){
-  const all=buildTasks(),open=all.filter(t=>!state.done.has(t.id)),over=open.filter(isOver).length,shown=state.showAll?all:all.slice(0,8);
+  const all=buildTasks().filter(t=>inScope(t.u)||(t.who&&t.who===myName())),open=all.filter(t=>!state.done.has(t.id)),over=open.filter(isOver).length,shown=state.showAll?all:all.slice(0,8);
   const past=opNights(iso(new Date(NOW().getTime()-21*DAY)),iso(new Date(NOW().getTime()-DAY))).slice(-3);
   const next=opNights(TODAY(),iso(new Date(NOW().getTime()+14*DAY))).slice(0,2);
   return `
@@ -579,7 +639,7 @@ function taskRow(t){const d=state.done.has(t.id),id='t-'+t.id.replace(/[^\w-]/g,
 function renderFillIns(){const f=fillIns().filter(x=>x.date>=iso(new Date(NOW().getTime()-28*DAY)));if(!f.length)return'';
   return `<section><div class="head"><h2>Fill-ins</h2><a class="link" href="${LINKS.fillInForm}" target="_blank" rel="noopener">Fill-in form</a></div>
     <p class="note-line" style="margin:-4px 0 12px">From the staffing of each night. Whoever filled in for another flight logs it in the fill-in form</p>
-    <div class="card list">${f.map(x=>`<div class="row" style="grid-template-columns:minmax(0,1fr) auto"><span><span class="t">${esc(x.who)}</span><span class="meta">${esc(SLOT_LABEL[x.slot])} on ${esc(x.call)} for ${UNIT_LABEL[x.u]}, from ${esc(x.from)}</span></span><span class="right mono" style="color:var(--fg2)">${dayLabel(x.date)}</span></div>`).join('')}</div></section>`}
+    <div class="card list">${f.map(x=>`<div class="row" style="grid-template-columns:minmax(0,1fr) auto"><span><span class="t">${esc(x.who)}</span><span class="meta">${esc(x.slot)} on ${esc(x.call)} for ${UNIT_LABEL[x.u]}, from ${esc(x.from)}</span></span><span class="right mono" style="color:var(--fg2)">${dayLabel(x.date)}</span></div>`).join('')}</div></section>`}
 function renderRoster(){if(!ready('roster')||!PEOPLE.length)return'';const d=rosterDiff(),U=u=>UNIT_LABEL[u]||u;
   const line=x=>({rank:[x.name,U(x.unit),`${x.from||'no rank'} → ${x.to}`],add:[x.name,`Add to ${U(x.to)}`,x.rank],move:[x.name,`Move ${U(x.from)} → ${U(x.to)}`,x.rank],remove:[x.name,`Remove from ${U(x.unit)}`,`${x.rank}, not in the JAC ORBAT`]}[x.kind]);
   return `<section id="roster"><div class="head"><h2>Unit roster</h2><a class="link" href="${sheetUrl(SHEETS.roster)}" target="_blank" rel="noopener">Open ORBAT 2.0</a></div>
@@ -590,58 +650,156 @@ function renderRoster(){if(!ready('roster')||!PEOPLE.length)return'';const d=ros
 const CHECKS={'18':['Logistics orders checked','Staffing set','Mission summary posted','J3 taskings received','Briefing or orders posted','LOAs checked'],
   '662':['Slotting posted','J3 taskings received','Briefing posted','LOAs checked'],'ALIC':['FAC and JTAC slots filled','Radio plan set','Briefing posted']};
 function prepNights(){const past=opNights(iso(new Date(NOW().getTime()-10*DAY)),iso(new Date(NOW().getTime()-DAY))).slice(-2),next=opNights(TODAY(),iso(new Date(NOW().getTime()+21*DAY))).slice(0,3);return[...past,...next]}
-function personOptions(sel){const groups=[['No. 18',PEOPLE.filter(p=>p.sq==='No. 18')],['Reserves',PEOPLE.filter(p=>/Reserve/.test(p.sq))],['Other JAC',PEOPLE.filter(p=>!/^No\. 18$|Reserve/.test(p.sq))]];
-  const seen=new Set();return `<option value="">Not set</option><option value="GAPPED" ${sel==='GAPPED'?'selected':''}>GAPPED</option>`+groups.map(([g,ps])=>`<optgroup label="${g}">${ps.filter(p=>{const k=pname(p);if(seen.has(k))return false;seen.add(k);return true}).map(p=>{const k=pname(p);return `<option ${k===sel?'selected':''}>${esc(k)}</option>`}).join('')}</optgroup>`).join('')}
-function currentStaffing(d,u){return state.draft?.key===d+'|'+u?state.draft.st:(entry('staffing',d+'|'+u)||{crews:CREW_DEFAULT(),warno:'',opo:'',cefo:'',notes:''})}
+/* Staffing is saved as you type: a copy on this device always, and on the server when your post allows it. */
+const draftKey=k=>'jac-staff-draft-'+k;
+function currentStaffing(d,u){const k=d+'|'+u;if(state.draft?.key===k)return state.draft.st;
+  const local=store(draftKey(k)),server=entry('staffing',k);
+  if(local&&(!server||(local.savedAt||'')>(server.savedAt||'')))return local;
+  return server||{crews:CREW_DEFAULT(),warno:'',opo:'',cefo:'',notes:''}}
+function lastStaffing(d,u){const prev=Object.keys(entriesOf('staffing')).filter(k=>k.endsWith('|'+u)&&k.split('|')[0]<d).sort().pop();return prev?{key:prev,st:entry('staffing',prev)}:null}
+const fillNote=(who,u)=>{if(!who||who==='GAPPED'||inFlight(who,u))return'';const p=findPerson(who),home=p?homeFlight(p):null;
+  return p?` (Fill in from ${home?FLIGHT_NAME[home]+' Flight':p.sq.replace(/^No\. /,'')})`:' (Fill in, outside JAC)'};
 function missionSummary(d,u,st){const fl=FLIGHT_NAME[u],orders=(D.logi||[]).filter(o=>o.eta===d&&o.flight===fl);
-  const crews=st.crews.filter(c=>Object.values(c.slots).some(v=>v));const L=[];
+  const crews=st.crews.filter(c=>c.slots.some(s=>s.who));const L=[];
   L.push(`@No. 18 ${fl} Flight`,'','Mission Summary',`Date: ${longDate(d)}`,`Sortie: ${fl} Flight – No. 18`,`Week: ${weekLabel(d)}`,'','Communications Plan');
   crews.forEach((c,i)=>L.push(`${String.fromCharCode(65+i)} Crew Callsign: ${c.call} Radio Net: ${c.ch}`));
-  L.push('','Crew Details');crews.forEach((c,i)=>{L.push(`${String.fromCharCode(65+i)} Crew`);Object.entries(c.slots).forEach(([s,v])=>{const p=PEOPLE.find(x=>pname(x)===v),home=p?homeFlight(p):null;
-    L.push(`${SLOT_LABEL[s]}: ${v||'GAPPED'}${v&&v!=='GAPPED'&&home!==u?` (Fill in${p?` from ${home?FLIGHT_NAME[home]+' Flight':'Reserve'}`:''})`:''}`)});L.push('')});
+  L.push('','Crew Details');crews.forEach((c,i)=>{L.push(`${String.fromCharCode(65+i)} Crew`);c.slots.forEach(({role,who})=>{if(!who&&!BASE_ROLES.includes(role))return;
+    const p=findPerson(who);L.push(`${role}: ${who?(p?pname(p):who):'GAPPED'}${fillNote(who,u)}`)});L.push('')});
   L.push('Tasking','Logistics:',' INITIAL');orders.length?orders.forEach(o=>L.push(`${o.link||o.ref} - ${o.coy} ${o.type.toLowerCase()} to ${o.to}`)):L.push(' None logged');L.push('',' LATER',' TBC','');
   if(st.cefo)L.push(`CEFO: ${st.cefo}`,'');
   L.push('Orders and Briefing');if(st.warno)L.push(`WARNO: ${st.warno}`);if(st.opo)L.push(`Operation Orders: ${st.opo}`);if(!st.warno&&!st.opo)L.push('To follow');if(st.notes)L.push('',st.notes);
   return L.join('\n')}
 function reportText(d,u,st){const pdt=weekOf(d)?.b.kind==='pdt',fl=FLIGHT_NAME[u],rein=(D.reinsert||[]).filter(r=>r.date===d);const L=[];
   L.push(`${pdt?'Training':'Patrol'} Report – No. 18 ${fl} Flight`,`Date: ${longDate(d)}`,`${weekLabel(d)}`,'');
-  st.crews.filter(c=>Object.values(c.slots).some(v=>v&&v!=='GAPPED')).forEach(c=>{L.push(`${c.call}`);Object.entries(c.slots).forEach(([s,v])=>{if(v&&v!=='GAPPED')L.push(`  ${SLOT_LABEL[s]}: ${v}`)});
+  st.crews.filter(c=>c.slots.some(s=>s.who&&s.who!=='GAPPED')).forEach(c=>{L.push(`${c.call}`);c.slots.forEach(({role,who})=>{if(who&&who!=='GAPPED'){const p=findPerson(who);L.push(`  ${role}: ${p?pname(p):who}`)}});
     const r=rein.find(x=>x.call===c.call);if(r)L.push(`  Reinserts: ${r.reinserts}, casualties extracted: ${r.extracted}`);L.push('')});
   if(pdt)L.push('Training objectives:','  (set by the squadron lead for this PDT)','');
   L.push('Summary:','','Lessons learned:','','Airframe losses: none');return L.join('\n')}
-function renderPrep(){
-  const nights=prepNights();if(!state.night||!nights.includes(state.night))state.night=nights.find(d=>d>=TODAY())||nights[0];const d=state.night;
+/* Night prep holds the Flight IC's jobs, one sub-tab each */
+const SUBS=[['staffing','Staffing'],['logistics','Logistics'],['reports','Reports'],['checklists','Checklists']];
+function renderPrep(sub){
+  sub=SUBS.some(s=>s[0]===sub)?sub:'staffing';
+  const nights=prepNights(),mf=myFlight();
+  if(!state.night||!nights.includes(state.night))state.night=nights.find(d=>d>=TODAY()&&(!mf||FLIGHT_OF_DAY[WD(d)]===mf))||nights.find(d=>d>=TODAY())||nights[0];
+  const d=state.night;
   if(!d)return `<section><h1>Night prep</h1><p class="sub">No op nights in the next three weeks of the deployment cycle</p></section>`;
-  const u=FLIGHT_OF_DAY[WD(d)],st=currentStaffing(d,u),saved=entry('staffing',d+'|'+u),dirty=state.draft?.key===d+'|'+u;
-  const checks=entry('check',d)||{};const flightRow=(key,label,items)=>{const v=checks[key]||[];
-    const val=i=>key==='18'&&i===1?!!saved:!!v[i];const dn=items.filter((_,i)=>val(i)).length;
-    return `<div class="card col"><div class="ch"><div><h2>${esc(label)}</h2><span class="mono" style="color:var(--fg3)">${dn} of ${items.length}</span></div><div class="prog" aria-hidden="true"><i style="width:${Math.round(dn/items.length*100)}%"></i></div></div>
-      ${items.map((it,i)=>{const id=`chk-${d}-${key}-${i}`;const locked=key==='18'&&i===1;return `<div class="check"><input type="checkbox" id="${id}" data-check="${key}|${i}" ${val(i)?'checked':''} ${locked?'disabled':''}><label for="${id}">${esc(it)}${locked?'<small>Ticks itself when the staffing is saved</small>':''}</label></div>`}).join('')}</div>`};
-  const fl=FLIGHT_NAME[u],orders=(D.logi||[]).filter(o=>o.eta===d&&o.flight===fl),past=d<TODAY();
+  const u=FLIGHT_OF_DAY[WD(d)],fl=FLIGHT_NAME[u];
+  const body={staffing:prepStaffing,logistics:prepLogistics,reports:prepReports,checklists:prepChecklists}[sub](d,u);
   return `
   <section class="head" style="align-items:end;margin:0"><div><h1>Night prep</h1><p class="sub">${dayLabel(d)}, ${esc(weekLabel(d))}, step off 1900Z. No. 18 ${fl} Flight, 662 and ALIC</p></div>
     <div class="seg" role="group" aria-label="Night">${nights.map(n=>`<button aria-pressed="${n===d}" data-night="${n}">${dayLabel(n)}</button>`).join('')}</div></section>
+  <nav class="subtabs" aria-label="Flight IC jobs">${SUBS.map(([k,l])=>`<a href="#prep-${k}" ${k===sub?'aria-current="page"':''}>${l}${subBadge(k,d,u)}</a>`).join('')}</nav>
+  ${body}`}
+function subBadge(k,d,u){
+  if(k==='staffing')return entry('staffing',d+'|'+u)?'':'<span class="dot" title="Not set"></span>';
+  if(k==='logistics'){const n=(D.logi||[]).filter(o=>o.eta===d&&o.flight===FLIGHT_NAME[u]).length;return n?`<span class="mono">${n}</span>`:''}
+  if(k==='reports'){const r=d<TODAY()?reinsertStatus(u,d):null;return r?.need&&r.missing.length?'<span class="dot" title="Reinsert report missing"></span>':''}
+  return''}
+
+function prepStaffing(d,u){
+  const k=d+'|'+u,st=currentStaffing(d,u),edit=canEdit('staffing',k),fl=FLIGHT_NAME[u];
+  const saved=entry('staffing',k),prev=!saved&&edit?lastStaffing(d,u):null,dis=edit?'':'disabled';
+  const orders=(D.logi||[]).filter(o=>o.eta===d&&o.flight===fl);
+  const slotRow=(ci,si,s)=>{const id=`sl-${ci}-${si}`,note=fillNote(s.who,u),base=BASE_ROLES.includes(s.role)&&si<3;
+    return `<div class="slot">${base?`<label for="${id}" class="meta">${esc(s.role)}</label>`:`<input type="text" class="role" list="roles-list" data-role="${ci}|${si}" value="${esc(s.role)}" aria-label="Position" ${dis}>`}
+      <div style="display:flex;gap:8px;min-width:0"><input type="text" id="${id}" list="people-list" data-who="${ci}|${si}" value="${esc(s.who)}" placeholder="Name, or GAPPED" autocomplete="off" style="flex:1;min-width:0" ${dis}>${!base&&edit?`<button class="link" data-delslot="${ci}|${si}" aria-label="Remove position">Remove</button>`:''}</div>
+      ${note?`<span class="fill">${esc(note.replace(/^ \(|\)$/g,''))}, logs it in the fill-in form</span>`:''}</div>`};
+  return `
+  <datalist id="people-list"><option value="GAPPED">${PEOPLE.filter((p,i,a)=>a.findIndex(x=>pname(x)===pname(p))===i).map(p=>`<option value="${esc(pname(p))}">${esc(p.sq)}${p.fl?', '+esc(flName(p.fl)):''}</option>`).join('')}</datalist>
+  <datalist id="roles-list">${EXTRA_ROLES.map(r=>`<option value="${esc(r)}">`).join('')}</datalist>
   <section class="staff">
-    <div><div class="head"><h2>Staffing, ${fl} Flight</h2><span class="meta">${saved?'Saved':'Not saved yet'}${ENTRIES?'':', kept in this browser'}</span></div>
+    <div><div class="head"><h2>Staffing, ${fl} Flight</h2><span class="meta" id="save-state">${edit?(state.saveMsg||(saved?`Saved ${new Date(saved.savedAt||Date.now()).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}`:'Saves as you type')):'Read only for your post'}</span></div>
+      ${prev?`<div class="banner" style="margin-bottom:12px">No staffing yet. <button class="link" data-copyprev="${prev.key}">Start from ${esc(dayLabel(prev.key.split('|')[0]))}</button></div>`:''}
       <div class="card">${st.crews.map((c,ci)=>`<div class="crew"><div class="ch2"><h3>${String.fromCharCode(65+ci)} Crew</h3><span class="mono" style="color:var(--fg3)">${esc(c.call)} · ${esc(c.ch)}</span></div>
-        ${Object.entries(c.slots).map(([s,v])=>{const p=PEOPLE.find(x=>pname(x)===v),home=p?homeFlight(p):null,fill=v&&v!=='GAPPED'&&home!==u;
-          return `<div class="slot"><label for="sl-${ci}-${s}" class="meta">${SLOT_LABEL[s]}</label><select id="sl-${ci}-${s}" data-slot="${ci}|${s}">${personOptions(v)}</select>${fill?`<span class="fill">Fill in from ${p?(home?FLIGHT_NAME[home]+' Flight':esc(p.sq)):'outside the ORBAT'}, logs it in the fill-in form</span>`:''}</div>`}).join('')}</div>`).join('')}
-        <div class="crew" style="display:flex;gap:12px;flex-wrap:wrap">${st.crews.length<3?'<button class="link" data-addcrew>Add C Crew</button>':'<button class="link" data-delcrew>Remove C Crew</button>'}</div>
-        <div class="fields"><label>WARNO link<input type="url" id="f-warno" value="${esc(st.warno)}" placeholder="Paste when the WARNO is out"></label>
-          <label>Operation orders link<input type="url" id="f-opo" value="${esc(st.opo)}" placeholder="OPO from the company"></label>
-          <label>CEFO link<input type="url" id="f-cefo" value="${esc(st.cefo||entry('setting','cefo')||'')}" placeholder="Current CEFO sheet"></label>
-          <label>Notes for the summary<input type="text" id="f-notes" value="${esc(st.notes)}" placeholder="Optional"></label></div>
-        <div class="foot" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><button class="btn primary" data-savestaff ${dirty||!saved?'':'disabled'}>Save staffing</button><span>${dirty?'Unsaved changes':''}</span></div></div></div>
+        ${c.slots.map((s,si)=>slotRow(ci,si,s)).join('')}
+        ${edit?`<div><button class="link" data-addslot="${ci}">Add position</button> <span class="note-line">Shadow, WSOp or your own</span></div>`:''}</div>`).join('')}
+        ${edit?`<div class="crew" style="display:flex;gap:16px;flex-wrap:wrap">${st.crews.length<4?`<button class="link" data-addcrew>Add ${String.fromCharCode(65+st.crews.length)} Crew</button>`:''}${st.crews.length>2?`<button class="link" data-delcrew>Remove ${String.fromCharCode(64+st.crews.length)} Crew</button>`:''}</div>`:''}
+        <div class="fields"><label>WARNO link<input type="url" id="f-warno" value="${esc(st.warno)}" placeholder="Paste when the WARNO is out" ${dis}></label>
+          <label>Operation orders link<input type="url" id="f-opo" value="${esc(st.opo)}" placeholder="OPO from the company" ${dis}></label>
+          <label>CEFO link<input type="url" id="f-cefo" value="${esc(st.cefo||entry('setting','cefo')||'')}" placeholder="Current CEFO" ${dis}></label>
+          <label>Notes for the summary<input type="text" id="f-notes" value="${esc(st.notes)}" placeholder="Optional" ${dis}></label></div></div></div>
     <div><div class="head"><h2>Mission summary</h2><span class="meta">${orders.length?`${orders.length} logistics order${orders.length>1?'s':''} included`:'No logistics orders for this night'}</span></div>
-      <div class="card out"><textarea id="ms" rows="22" readonly aria-label="Mission summary text">${esc(missionSummary(d,u,st))}</textarea>
-        <div class="acts"><button class="btn" data-copy="ms">Copy for Discord</button><span class="note-line">Paste into #no-18-${fl.toLowerCase()}-announcements</span></div></div>
-      ${past?`<div class="head" style="margin-top:24px"><h2>${weekOf(d)?.b.kind==='pdt'?'Training':'Patrol'} report</h2><a class="link" href="https://4thib.co.uk/index.php" target="_blank" rel="noopener">Forum</a></div>
-      <div class="card out"><textarea id="rep" rows="16" readonly aria-label="Report text">${esc(reportText(d,u,st))}</textarea><div class="acts"><button class="btn" data-copy="rep">Copy</button></div></div>`:''}
-    </div>
-  </section>
-  <section><div class="head"><h2>Checklists</h2><span class="meta">Each Flight IC ticks their own column</span></div>
-    <div class="cols">${flightRow('18',`${fl} Flight`,CHECKS['18'])}${flightRow('662','662',CHECKS['662'])}${flightRow('ALIC','ALIC',CHECKS.ALIC)}</div></section>
-  ${renderLogi(d)}`}
+      <div class="card out"><textarea id="ms" rows="24" readonly aria-label="Mission summary text">${esc(missionSummary(d,u,st))}</textarea>
+        <div class="acts"><button class="btn" data-copy="ms">Copy for Discord</button><span class="note-line">Paste into #no-18-${fl.toLowerCase()}-announcements</span></div></div></div>
+  </section>`}
+
+function prepReports(d,u){
+  const st=currentStaffing(d,u),pdt=weekOf(d)?.b.kind==='pdt',r=reinsertStatus(u,d),past=d<TODAY(),owner=casOwner(u);
+  const calls=st.crews.filter(c=>c.slots.some(s=>s.who&&s.who!=='GAPPED')).map(c=>c.call);
+  const got=(D.reinsert||[]).filter(x=>x.date===d);
+  return `<section class="staff">
+    <div><div class="head"><h2>${pdt?'Training':'Patrol'} report</h2><a class="link" href="https://4thib.co.uk/index.php" target="_blank" rel="noopener">Forum</a></div>
+      <div class="card out"><textarea id="rep" rows="20" readonly aria-label="Report text">${esc(reportText(d,u,st))}</textarea>
+        <div class="acts"><button class="btn" data-copy="rep">Copy</button><span class="note-line">${past?'Built from the staffing and the reinsert reports':'Fills in after the night'}</span></div></div></div>
+    <div><div class="head"><h2>Casualty and reinsert reports</h2><a class="link" href="${LINKS.casualtyForm}" target="_blank" rel="noopener">Open the form</a></div>
+      <div class="card list">${(calls.length?calls:['Vortex 1-1','Vortex 1-2']).map(c=>{const x=got.find(g=>g.call===c);
+        return `<div class="row" style="grid-template-columns:minmax(0,1fr) auto"><span><span class="t">${esc(c)}</span><span class="meta">${x?`${x.reinserts} reinserts, ${x.extracted} casualties extracted`:pdt?'Not needed in PDT':past?'No report yet':'After the night'}</span></span>
+          <span class="st ${x?'ok':pdt||!past?'':'late'}">${x?'Filed':pdt?'PDT':past?'Missing':'Open'}</span></div>`}).join('')}</div>
+      <p class="note-line" style="margin:8px 2px 0">The loadmasters file one report per callsign. The ${esc(owner)} makes sure, set in Setup</p></div>
+  </section>`}
+
+function prepChecklists(d,u){
+  const fl=FLIGHT_NAME[u],saved=entry('staffing',d+'|'+u),checks=entry('check',d)||{},canCheck=canEdit('check',d);
+  const col=(key,label,items)=>{const v=checks[key]||[],val=i=>key==='18'&&i===1?!!saved:!!v[i],dn=items.filter((_,i)=>val(i)).length;
+    return `<div class="card col"><div class="ch"><div><h2>${esc(label)}</h2><span class="mono" style="color:var(--fg3)">${dn} of ${items.length}</span></div><div class="prog" aria-hidden="true"><i style="width:${Math.round(dn/items.length*100)}%"></i></div></div>
+      ${items.map((it,i)=>{const id=`chk-${d}-${key}-${i}`,locked=key==='18'&&i===1;return `<div class="check"><input type="checkbox" id="${id}" data-check="${key}|${i}" ${val(i)?'checked':''} ${locked||!canCheck?'disabled':''}><label for="${id}">${esc(it)}${locked?'<small>Ticks itself once the staffing is saved</small>':''}</label></div>`}).join('')}</div>`};
+  return `<section><div class="head"><h2>Checklists</h2><span class="meta">${canCheck?'Each Flight IC ticks their own column':'Read only for your post'}</span></div>
+    <div class="cols">${col('18',`${fl} Flight`,CHECKS['18'])}${col('662','662',CHECKS['662'])}${col('ALIC','ALIC',CHECKS.ALIC)}</div></section>`}
+
+/* ---------- Logistics: orders for the night, receipt creator, order limit check ---------- */
+function seeded(s){let h=2166136261;for(const c of String(s))h=Math.imul(h^c.charCodeAt(0),16777619);return((h>>>0)%1000)/1000}
+const pkgOf=type=>{const t=(type||'').toLowerCase(),P=D.receipt?.packages||{};return P[t]||P[t.replace(/s$/,'')]||Object.values(P).find(p=>t.startsWith(p.name.toLowerCase().slice(0,4)))||null};
+function suggestWeight(type,ref){const p=pkgOf(type);if(!p||!p.weight)return'N/A';return Math.round(p.weight*(1+seeded(ref)*4))+'kg'}
+const dotDate=s=>s?s.split('-').reverse().join('.'):'';
+const slashDate=s=>s?s.split('-').reverse().join('/'):'';
+function receiptFrom(o){const type=(o?.type||'PALLET').toUpperCase(),p=pkgOf(type);
+  return{ref:o?.ref||'',shipper:myName()||o?.ship||'',consignee:o?.req||'',grid:o?.to||'',pc:o?.pc||'1',pcs:o?.pcs||'1',type,weight:o?suggestWeight(type,o.ref):'',
+    dims:p?.dims||'N/A',eta:o?.eta||state.night,status:'PENDING',date:TODAY(),img:''}}
+function receiptLines(r){const U=D.receipt?.unit||['Royal Air Force, RAF Odiham','No. 18 Squadron'];
+  return[[U[0]],[U[1]],[],['SHIPPER',r.shipper],['CONSIGNEE',r.consignee],['REFERENCE#',r.ref,'DATE',dotDate(r.date)],['TO (GRID)',r.grid,'PCS',`${r.pc} OF ${r.pcs}`],
+    ['TYPE',r.type],['UNIT WEIGHT',r.weight,'DIMENSIONS',r.dims],['EST DELIVERY',slashDate(r.eta),'STATUS',r.status],[],['4th Infantry Brigade · www.4thib.co.uk']]}
+function receiptBB(r){return receiptLines(r).map(l=>l.length===1?`[b]${l[0]}[/b]`:l.length===0?'':l.length===2?`${l[0]}: ${l[1]}`:`${l[0]}: ${l[1]}    ${l[2]}: ${l[3]}`).join('\n').trim()}
+function forumLine(r){return `Received & Pending: [X] Date: ${dotDate(r.date)}\n${r.img?`[img]${r.img}[/img]`:'[img]paste the image link here[/img]'}`}
+function receiptCard(r){return `<div class="receipt" aria-label="Receipt preview">${receiptLines(r).map(l=>l.length===0?'<hr>':l.length===1?`<div class="rh">${esc(l[0])}</div>`:
+  `<div class="rl"><span>${esc(l[0])}</span><b>${esc(l[1]||'–')}</b>${l[2]?`<span>${esc(l[2])}</span><b>${esc(l[3]||'–')}</b>`:''}</div>`).join('')}</div>`}
+function drawReceipt(r){const lines=receiptLines(r),W=720,lh=34,H=48+lines.length*lh,c=document.createElement('canvas'),s=2;c.width=W*s;c.height=H*s;const x=c.getContext('2d');x.scale(s,s);
+  x.fillStyle='#ffffff';x.fillRect(0,0,W,H);x.strokeStyle='#d4d4d4';x.strokeRect(.5,.5,W-1,H-1);let y=40;
+  lines.forEach(l=>{if(l.length===0){x.strokeStyle='#e5e5e5';x.beginPath();x.moveTo(24,y-12);x.lineTo(W-24,y-12);x.stroke()}
+    else if(l.length===1){x.fillStyle='#171717';x.font='600 18px "IBM Plex Sans", Arial';x.fillText(l[0],24,y)}
+    else{x.font='12px "IBM Plex Mono", monospace';x.fillStyle='#737373';x.fillText(l[0],24,y);x.fillStyle='#171717';x.font='500 16px "IBM Plex Mono", monospace';x.fillText(l[1]||'–',170,y);
+      if(l[2]){x.font='12px "IBM Plex Mono", monospace';x.fillStyle='#737373';x.fillText(l[2],400,y);x.fillStyle='#171717';x.font='500 16px "IBM Plex Mono", monospace';x.fillText(l[3]||'–',520,y)}}y+=lh});
+  return c}
+function checkOrder(text){const lines=String(text||'').split(/\n/).map(l=>l.trim().match(/^(\d+)\s*x\s*(.+)$/i)).filter(Boolean).map(m=>({n:+m[1],item:m[2]}));
+  return(D.limits||[]).map(L=>{let re=null;try{re=new RegExp(L.pattern,'i')}catch(e){}const used=re?lines.filter(x=>re.test(x.item)).reduce((a,x)=>a+x.n,0):0;return{...L,used,excess:Math.max(0,used-L.limit)}})}
+function orderDecision(res){const over=res.filter(r=>r.excess>0);
+  return over.length?`Action: Rejected\nReason: The request is over the authorised limits:\n${over.map(r=>`- ${r.cat}: ${r.used} requested, limit ${r.limit} (${r.excess} too many)`).join('\n')}\nPlease resubmit within the limits.`
+    :'Action: Approved\nReason: All quantities are within authorised limits'}
+function prepLogistics(d,u){
+  const fl=FLIGHT_NAME[u],orders=(D.logi||[]);
+  if(!state.rc)state.rc=receiptFrom(orders.filter(o=>o.flight===fl&&o.eta===d)[0]||null);
+  const r=state.rc,res=checkOrder(state.orderText),pasted=(state.orderText||'').trim();
+  const pick=orders.slice().reverse().slice(0,40);
+  return `${renderLogi(d)}
+  <section><div class="head"><h2>Receipt</h2><span class="meta">Replaces the Receipt tab. Weight and size come from its package table</span></div>
+    <div class="staff">
+      <div class="card"><div class="fields" style="border-top:0">
+        <label>Order<select id="rc-order"><option value="">New receipt</option>${pick.map(o=>`<option value="${esc(o.ref)}" ${o.ref===r.ref?'selected':''}>${esc(o.ref)} · ${esc(o.coy)} · ${esc((o.type||'').toLowerCase())} to ${esc(o.to)}</option>`).join('')}</select></label>
+        ${[['ref','Reference'],['shipper','Shipper'],['consignee','Consignee'],['grid','To (grid)'],['pc','Piece'],['pcs','Of pieces']].map(([k,l])=>`<label>${l}<input type="text" data-rc="${k}" value="${esc(r[k])}"></label>`).join('')}
+        <label>Type<select data-rc="type">${['PALLET','CONTAINER','R&R CONT.','VEHICLE(S)','AIRFRAME(S)'].map(t=>`<option ${t===r.type?'selected':''}>${t}</option>`).join('')}</select></label>
+        ${[['weight','Unit weight'],['dims','Dimensions'],['eta','Est. delivery (YYYY-MM-DD)'],['status','Status'],['date','Date (YYYY-MM-DD)']].map(([k,l])=>`<label>${l}<input type="text" data-rc="${k}" value="${esc(r[k])}"></label>`).join('')}
+      </div></div>
+      <div style="display:grid;gap:16px;align-content:start">${receiptCard(r)}
+        <div class="acts" style="display:flex;gap:12px;flex-wrap:wrap"><button class="btn primary" data-rcpng>Download receipt image</button><button class="btn" data-copytext="${esc(receiptBB(r))}">Copy as forum text</button></div>
+        <div class="card fields" style="border-top:0"><label>Image link after upload (Lightshot, Imgur)<input type="url" data-rc="img" value="${esc(r.img)}" placeholder="https://img.lightshot.app/….png"></label>
+          <textarea rows="3" readonly id="rc-post" aria-label="Forum reply">${esc(forumLine(r))}</textarea><div><button class="btn" data-copy="rc-post">Copy forum reply</button></div></div></div>
+    </div></section>
+  <section><div class="head"><h2>Order check</h2><span class="meta">Replaces the Order Limit Checker. Limits from its sheet</span></div>
+    <div class="staff">
+      <div class="card fields" style="border-top:0"><label>Company request<textarea id="order-text" rows="14" placeholder="Paste the full request. Lines like “5x Bandolier (Rifle)” are counted">${esc(state.orderText||'')}</textarea></label></div>
+      <div style="display:grid;gap:16px;align-content:start">
+        <div class="card list">${res.map(x=>`<div class="row" style="grid-template-columns:minmax(0,1fr) auto"><span><span class="t">${esc(x.cat)}</span><span class="meta">Limit ${x.limit}</span></span><span class="st ${!pasted?'':x.excess?'late':'ok'}">${pasted?`${x.used}${x.excess?`, ${x.excess} over`:''}`:'–'}</span></div>`).join('')||'<p class="empty" style="margin:0">Loading the limits</p>'}</div>
+        ${pasted?`<div class="card out"><textarea id="order-decision" rows="6" readonly aria-label="Decision">${esc(orderDecision(res))}</textarea><div class="acts"><button class="btn" data-copy="order-decision">Copy decision</button></div></div>`:''}
+      </div></div></section>`}
 function renderLogi(d){if(!ready('logi'))return failBlock('logi');const fl=FLIGHT_NAME[FLIGHT_OF_DAY[WD(d)]],due=D.logi.filter(o=>o.eta===d&&o.flight===fl),recent=D.logi.filter(o=>o.flight===fl).slice(-3);
   const row=o=>`<div class="row" style="grid-template-columns:96px minmax(0,1fr) auto"><span class="mono" style="color:var(--fg2)">${esc(o.ref)}</span>
     <span style="min-width:0"><span class="t">${esc((o.type||'Order').toLowerCase().replace(/^./,c=>c.toUpperCase()))} to ${esc(o.to)}</span><span class="meta">${esc(o.coy)} · from ${esc(o.from)} · shipper ${esc(o.ship||'not set')}</span></span>
@@ -664,39 +822,90 @@ const ROLE_DEFAULT={'18':[[1,1,1,1,1,1],[1,1,1,1,1,1],[1,1,1,0,0,0],[0,0,0,0,0,0
   '662':[[1,1,1,1,1,1],[1,1,1,1,1,1],[1,1,1,1,1,1],[1,1,1,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]],'ALIC':[[1,1,1,1,1,1],[1,1,1,1,1,1],[0,0,1,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]]};
 const roles=u=>entry('roles',u)||ROLE_DEFAULT[u];
 function renderSetup(){const bl=cycleBlocks(),u=state.roleUnit,m=roles(u),wn=weekOf(NOW());
-  return `<section><h1>Setup</h1><p class="sub">Maintained by JAC HQ and the squadron HQs. ${ENTRIES?'Changes are shared through the entries form':'Changes are kept in this browser until the entries form is connected'}</p></section>
+  return `<section><h1>Setup</h1><p class="sub">Maintained by JAC HQ and the squadron HQs. What you can change follows your post</p></section>
   <section><div class="head"><h2>Deployment cycle</h2><span class="meta">Week labels, op nights and deadlines come from here</span></div>
     <div class="card"><div class="tbl"><table><thead><tr><th>Type</th><th>Name</th><th>Weeks</th><th>Dates</th><th></th></tr></thead><tbody>
-    ${bl.map((b,i)=>`<tr><td><select id="ck-${b.id}" data-cyc-kind="${i}" aria-label="Type">${[['op','Operation'],['admin','Admin'],['pdt','PDT']].map(([k,l])=>`<option value="${k}" ${k===b.kind?'selected':''}>${l}</option>`).join('')}</select></td>
-      <td><input type="text" id="cn-${b.id}" data-cyc-name="${i}" value="${esc(b.name)}" aria-label="Name" style="width:100%;min-width:140px"></td>
-      <td><input type="number" id="cw-${b.id}" data-cyc-weeks="${i}" value="${b.weeks}" min="1" max="20" aria-label="Weeks" style="width:64px"></td>
+    ${bl.map((b,i)=>`<tr><td><select id="ck-${b.id}" data-cyc-kind="${i}" aria-label="Type" ${canEdit('cycle')?'':'disabled'}>${[['op','Operation'],['admin','Admin'],['pdt','PDT']].map(([k,l])=>`<option value="${k}" ${k===b.kind?'selected':''}>${l}</option>`).join('')}</select></td>
+      <td><input type="text" id="cn-${b.id}" data-cyc-name="${i}" value="${esc(b.name)}" aria-label="Name" style="width:100%;min-width:140px" ${canEdit('cycle')?'':'disabled'}></td>
+      <td><input type="number" id="cw-${b.id}" data-cyc-weeks="${i}" value="${b.weeks}" min="1" max="20" aria-label="Weeks" style="width:64px" ${canEdit('cycle')?'':'disabled'}></td>
       <td class="mono" style="white-space:nowrap">${shortDate(b.start)} – ${shortDate(b.end)}${wn?.b.id===b.id?' <span style="color:var(--accent-ink)">now</span>':''}</td>
-      <td style="text-align:right;white-space:nowrap"><button class="link" data-cyc-ins="${i}">Add week after</button><button class="link" data-cyc-del="${i}" style="margin-left:16px">Remove</button></td></tr>`).join('')}
-    </tbody></table></div><div class="foot" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><label for="anchor">Cycle starts Monday</label><input type="date" id="anchor" value="${CYCLE().anchor}"><span>To shift an admin week, change its weeks. Everything after it moves along</span></div></div></section>
+      <td style="text-align:right;white-space:nowrap">${canEdit('cycle')?`<button class="link" data-cyc-ins="${i}">Add week after</button><button class="link" data-cyc-del="${i}" style="margin-left:16px">Remove</button>`:''}</td></tr>`).join('')}
+    </tbody></table></div><div class="foot" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><label for="anchor">Cycle starts Monday</label><input type="date" id="anchor" value="${CYCLE().anchor}" ${canEdit('cycle')?'':'disabled'}><span>To shift an admin week, change its weeks. Everything after it moves along</span></div></div></section>
   <section><div class="head"><h2>Flight settings, No. 18</h2><span class="meta">Each Flight IC sets their own</span></div>
     <div class="card list">${['18A','18B','18C'].map(f=>`<div class="row" style="grid-template-columns:minmax(0,1fr) auto"><span><span class="t">${UNIT_LABEL[f]}</span><span class="meta">Makes sure the loadmasters file casualty and reinsert reports</span></span>
-      <select id="cas-${f}" data-cas="${f}" aria-label="Responsible in ${UNIT_LABEL[f]}">${['Flight IC','Flight 2IC'].map(o=>`<option ${casOwner(f)===o?'selected':''}>${o}</option>`).join('')}</select></div>`).join('')}
-      <div class="row" style="grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)"><label for="cefo-def"><span class="t">Default CEFO link</span><span class="meta">Prefills the mission summary</span></label><input type="url" id="cefo-def" value="${esc(entry('setting','cefo')||'')}" placeholder="Link to the current CEFO"></div></div></section>
+      <select id="cas-${f}" data-cas="${f}" aria-label="Responsible in ${UNIT_LABEL[f]}" ${canEdit('setting','cas|'+f)?'':'disabled'}>${['Flight IC','Flight 2IC'].map(o=>`<option ${casOwner(f)===o?'selected':''}>${o}</option>`).join('')}</select></div>`).join('')}
+      <div class="row" style="grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)"><label for="cefo-def"><span class="t">Default CEFO link</span><span class="meta">Prefills the mission summary</span></label><input type="url" id="cefo-def" value="${esc(entry('setting','cefo')||'')}" placeholder="Link to the current CEFO" ${canEdit('setting','cefo')?'':'disabled'}></div></div></section>
   <section><div class="head"><h2>Data sources</h2><span class="meta">Read live in the background, refreshed every 10 minutes</span></div>
     <div class="card list">${Object.entries(SHEETS).map(([k,s])=>`<div class="row" style="grid-template-columns:minmax(0,1fr) auto"><span><span class="t">${esc(s.name)}</span><span class="meta">${D.errors[k]?'Could not be read':D[k]?`Read ${new Date(D.read).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}`:'Loading'}</span></span><span class="right"><a class="link" href="${sheetUrl(s)}" target="_blank" rel="noopener">Open</a></span></div>`).join('')}
-      <div class="row" style="grid-template-columns:minmax(0,1fr)"><span><span class="t">Forum: attendance tracker, LOAs, patrol reports</span><span class="meta">Needs the hosted backend</span></span></div>
-      <div class="row" style="grid-template-columns:minmax(0,1fr)"><span><span class="t">Entries form: staffing, checklists, settings</span><span class="meta">${ENTRIES?'Connected':'Not connected. Entries stay in this browser'}</span></span></div></div></section>
+      <div class="row" style="grid-template-columns:minmax(0,1fr)"><span><span class="t">Forum: attendance tracker, LOAs, patrol reports</span><span class="meta">Needs the forum reading account</span></span></div>
+      <div class="row" style="grid-template-columns:minmax(0,1fr)"><span><span class="t">Entries: staffing, checklists, settings</span><span class="meta">Stored on the cockpit server</span></span></div></div></section>
   <section class="head" style="align-items:end;margin:0"><div><h2 style="font-size:20px;line-height:26px">Access by rank</h2><p class="sub">Each squadron HQ sets what its ranks can do. Ranks from SOP 9-7</p></div>
     <select id="roleunit" aria-label="Squadron">${[['18','No. 18 Squadron'],['662','No. 662 Squadron'],['ALIC','ALIC']].map(o=>`<option value="${o[0]}" ${o[0]===u?'selected':''}>${o[1]}</option>`).join('')}</select></section>
   <section><div class="card"><div class="tbl"><table class="matrix"><thead><tr><th>Rank</th>${PERMS.map(p=>`<th>${p}</th>`).join('')}</tr></thead>
-    <tbody>${RANKS[u].map((r,ri)=>`<tr><td>${esc(r)}</td>${PERMS.map((p,pi)=>`<td><input type="checkbox" id="perm-${u}-${ri}-${pi}" aria-label="${esc(r)}, ${esc(p)}" data-perm="${ri}-${pi}" ${m[ri][pi]?'checked':''}></td>`).join('')}</tr>`).join('')}</tbody></table></div>
-    <div class="foot">Enforced once sign-in exists in the hosted version</div></div></section>`}
+    <tbody>${RANKS[u].map((r,ri)=>`<tr><td>${esc(r)}</td>${PERMS.map((p,pi)=>`<td><input type="checkbox" id="perm-${u}-${ri}-${pi}" aria-label="${esc(r)}, ${esc(p)}" data-perm="${ri}-${pi}" ${m[ri][pi]?'checked':''} ${canEdit('roles',u)?'':'disabled'}></td>`).join('')}</tr>`).join('')}</tbody></table></div>
+    <div class="foot">Only the squadron HQ and JAC HQ can change this</div></div></section>`}
 
 /* ---------- router and events ---------- */
-function route(soft){let k=location.hash.slice(1);if(!VIEWS[k])k='orbat';state.view=k;
-  const y=window.scrollY,active=document.activeElement?.id;renderTabs(k);$('#view').innerHTML=VIEWS[k][1]();renderSheet();
-  if(soft){window.scrollTo(0,y);if(active)document.getElementById(active)?.focus()}}
+/* ---------- sign-in ---------- */
+function renderAcct(){const el=$('#acct');if(MODE!=='server'){el.innerHTML=SERVER_URL?`<a class="link" href="${esc(SERVER_URL)}">Sign in</a>`:'';return}
+  if(!ME){el.innerHTML='<a class="link" href="#admin">Sign in</a>';return}
+  const title=(ME.roles||[]).find(r=>r.scope!=='self')?.title||(ME.roles||[])[0]?.title||'';
+  el.innerHTML=`<span>${esc(myName()||ME.name||ME.email)}${title?` · ${esc(title)}`:''}</span><button class="link" data-logout>Sign out</button>`}
+function renderGate(k){const what=VIEWS[k][0];
+  if(MODE!=='server')return `<section><h1>${esc(what)}</h1><p class="sub">The ORBAT is public. ${esc(what)} needs a JAC sign-in</p></section>
+    <div class="banner">${SERVER_URL?`Sign in on the cockpit server: <a class="link" href="${esc(SERVER_URL)}#${k}">${esc(SERVER_URL.replace(/^https?:\/\//,''))}</a>`:'The cockpit server is not set up yet'}</div>`;
+  const g=!!ME,link=state.link;
+  return `<section><h1>Sign in</h1><p class="sub">The ORBAT is public. Admin, Night prep and Setup show what your post in the JAC ORBAT allows</p></section>
+  <section class="gate">
+    <div class="card ${g?'off':''}"><span class="stepn">Step 1</span><h2>Google</h2><p class="note-line" style="margin:0">Identifies you on this device. The session stays for 30 days</p>
+      ${g?`<p style="margin:0">Signed in as ${esc(ME.email)}</p>`:'<div id="gbtn"></div><p class="err" id="gerr" hidden></p>'}</div>
+    <div class="card ${g?'':'off'}"><span class="stepn">Step 2, once</span><h2>Link your forum profile</h2>
+      <p class="note-line" style="margin:0">No forum password. You put a one-time code into your forum signature, the cockpit checks your public profile</p>
+      ${!g?'':!link?`<form id="link-start"><label>Who are you in the JAC ORBAT<input type="text" id="link-name" list="orbat-names" autocomplete="off" placeholder="Rank and name" required></label>
+        <datalist id="orbat-names">${PEOPLE.filter((p,i,a)=>p.uid&&a.findIndex(x=>x.uid===p.uid)===i).map(p=>`<option value="${esc(pname(p))}">`).join('')}</datalist>
+        <button class="btn primary" type="submit">Get my code</button><p class="err" id="lerr" hidden></p></form>`
+      :`<p style="margin:0">Your code</p><p class="mono" style="font-size:20px;line-height:24px;margin:0;color:var(--fg)">${esc(link.code)}</p>
+        <ol style="margin:0;padding-left:20px;display:grid;gap:4px;color:var(--fg2)"><li><a class="link" href="${esc(link.editsig)}" target="_blank" rel="noopener">Open your forum signature</a></li><li>Add the code anywhere and save</li><li>Check here. You can remove the code afterwards</li></ol>
+        <div style="display:flex;gap:12px;align-items:center"><button class="btn primary" data-linkcheck>Check</button><button class="link" data-linkreset>Pick someone else</button></div><p class="err" id="lerr" hidden></p>`}
+    </div></section>`}
+let gisLoaded=false;
+async function mountGoogle(){const el=$('#gbtn');if(!el)return;
+  const cfg=await fetch('/api/config').then(r=>r.json()).catch(()=>({}));if(!cfg.google_client_id){el.outerHTML='<p class="err">Google sign-in is not configured on the server</p>';return}
+  const go=()=>{google.accounts.id.initialize({client_id:cfg.google_client_id,callback:async res=>{const r=await fetch('/auth/google',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({credential:res.credential})});
+      if(!r.ok){const e=$('#gerr');if(e){e.hidden=false;e.textContent='Google sign-in failed'}return}ME=await r.json();afterSignIn()}});
+    google.accounts.id.renderButton(el,{theme:'outline',size:'large',text:'signin_with'})};
+  if(gisLoaded&&window.google)return go();const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.async=true;s.onload=()=>{gisLoaded=true;go()};document.head.appendChild(s)}
+function afterSignIn(){renderAcct();if(isMember()){state.link=null;loadAll()}route()}
+
+/* ---------- router and events ---------- */
+const OPEN_VIEWS=new Set(['orbat']);
+function route(soft){let[k,sub]=location.hash.slice(1).split('-');if(!VIEWS[k])k='orbat';state.view=k;
+  const y=window.scrollY,active=document.activeElement?.id;renderTabs(k);
+  $('#view').innerHTML=OPEN_VIEWS.has(k)||isMember()?VIEWS[k][1](sub):renderGate(k);renderSheet();
+  if(!OPEN_VIEWS.has(k)&&!isMember()&&MODE==='server'&&!ME)mountGoogle();
+  if(soft){window.scrollTo(0,y);if(active){const el=document.getElementById(active);if(el){el.focus();if(el.setSelectionRange&&el.type==='text'){const n=el.value.length;try{el.setSelectionRange(n,n)}catch(e){}}}}}}
 window.addEventListener('hashchange',()=>{state.open=null;route();window.scrollTo(0,0)});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&state.open){const id=state.open;state.open=null;renderSheet();document.querySelector(`[data-person="${id}"]`)?.focus()}});
 function draftFor(){const d=state.night,u=FLIGHT_OF_DAY[WD(d)],key=d+'|'+u;if(state.draft?.key!==key)state.draft={key,st:JSON.parse(JSON.stringify(currentStaffing(d,u)))};return state.draft.st}
+/* Autosave: every change is written to this device at once and to the server shortly after typing stops */
+function staffChanged(rerender){const st=draftFor(),key=state.draft.key;st.savedAt=new Date().toISOString();store(draftKey(key),st);
+  const d=state.night,u=FLIGHT_OF_DAY[WD(d)],ms=$('#ms');if(ms)ms.value=missionSummary(d,u,st);
+  state.saveMsg='Saving…';const ss=$('#save-state');if(ss)ss.textContent=state.saveMsg;
+  clearTimeout(staffChanged.t);staffChanged.t=setTimeout(async()=>{const ok=await saveEntry('staffing',key,st);
+    state.saveMsg=ok?`Saved ${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}`:'Saved on this device only';const s2=$('#save-state');if(s2)s2.textContent=state.saveMsg},800);
+  if(rerender)route(true)}
+document.addEventListener('submit',async e=>{if(e.target.id!=='link-start')return;e.preventDefault();
+  const v=$('#link-name').value.trim(),p=PEOPLE.find(x=>pname(x)===v||x.name===v),err=$('#lerr');
+  if(!p?.uid){err.hidden=false;err.textContent='Pick your name from the list';return}
+  const r=await fetch('/auth/forum/start',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:p.uid})});
+  const j=await r.json().catch(()=>({}));if(!r.ok){err.hidden=false;err.textContent=j.detail||'Could not start';return}state.link=j;route()});
 document.addEventListener('click',async e=>{
   const g=e.target.closest('[data-gonight]');if(g){state.night=g.dataset.gonight;return}
   const b=e.target.closest('button,.scrim');if(!b)return;const d=b.dataset;
+  if('logout'in d){await fetch('/auth/logout',{method:'POST',credentials:'same-origin'});ME=null;ENTRY_LIST=[];['ua','roster','logi','reinsert','receipt','limits'].forEach(k=>D[k]=null);store('jac-cache-v1',{orbat:D.orbat,read:D.read});renderAcct();route();return}
+  if('linkcheck'in d){const r=await fetch('/auth/forum/check',{method:'POST',credentials:'same-origin'});const j=await r.json().catch(()=>({}));
+    if(!r.ok){const err=$('#lerr');err.hidden=false;err.textContent=j.detail||'Not found yet';return}ME=j;if(!ME.member)toast('Linked, but you are not in the JAC ORBAT');afterSignIn();return}
+  if('linkreset'in d){state.link=null;route();return}
   if(d.person){state.open=d.person;renderSheet();return}
   if('close'in d){const id=state.open;state.open=null;renderSheet();document.querySelector(`[data-person="${id}"]`)?.focus();return}
   if(d.filter){state.filter=d.filter;route();return}
@@ -704,25 +913,35 @@ document.addEventListener('click',async e=>{
   if(d.nominate){toast(`Nominate for ${d.nominate} in the course posting on the forum`);return}
   if(d.promote){toast('Post the promotion in the forum Admin Centre');return}
   if('more'in d){state.showAll=!state.showAll;route(true);return}
-  if(d.night){state.night=d.night;state.draft=null;route();return}
-  if('addcrew'in d){draftFor().crews.push({call:'Vortex 1-3',ch:'LR Channel 33',slots:{Pilot:'',CoPilot:'',Loadmaster:''}});route(true);return}
-  if('delcrew'in d){draftFor().crews.splice(2);route(true);return}
-  if('savestaff'in d){const st=draftFor(),dd=state.night,u=FLIGHT_OF_DAY[WD(dd)];const how=await saveEntry('staffing',dd+'|'+u,st);state.draft=null;toast(how==='shared'?'Staffing saved and shared':'Staffing saved in this browser');route(true);return}
+  if(d.night){state.night=d.night;state.draft=null;state.saveMsg='';state.rc=null;route();return}
+  if(d.copyprev){const st=JSON.parse(JSON.stringify(entry('staffing',d.copyprev)));state.draft={key:state.night+'|'+FLIGHT_OF_DAY[WD(state.night)],st:{...st,warno:'',opo:'',notes:''}};staffChanged(true);return}
+  if('addcrew'in d){const st=draftFor();st.crews.push(newCrew(st.crews.length+1));staffChanged(true);return}
+  if('delcrew'in d){draftFor().crews.pop();staffChanged(true);return}
+  if(d.addslot!==undefined){draftFor().crews[+d.addslot].slots.push({role:'Shadow',who:''});staffChanged(true);return}
+  if(d.delslot){const[ci,si]=d.delslot.split('|').map(Number);draftFor().crews[ci].slots.splice(si,1);staffChanged(true);return}
+  if('rcpng'in d){const r=state.rc;drawReceipt(r).toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`${r.ref||'receipt'}.png`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000)});toast('Receipt image saved. Upload it, then paste the link');return}
+  if(d.copytext){try{await navigator.clipboard.writeText(d.copytext);toast('Copied')}catch(err){toast('Copy failed')}return}
   if(d.copy){const t=document.getElementById(d.copy);try{await navigator.clipboard.writeText(t.value);toast('Copied')}catch(err){t.focus();t.select();toast('Selected, press Ctrl+C')}return}
   if(d.cycIns!==undefined){const c=JSON.parse(JSON.stringify(CYCLE()));c.blocks.splice(+d.cycIns+1,0,{id:'b'+Date.now(),kind:'admin',name:'Admin',weeks:1});await saveEntry('cycle','cycle',c);route(true);return}
   if(d.cycDel!==undefined){const c=JSON.parse(JSON.stringify(CYCLE()));if(c.blocks.length>1)c.blocks.splice(+d.cycDel,1);await saveEntry('cycle','cycle',c);route(true);return}
 });
-document.addEventListener('input',e=>{const el=e.target;if(['f-warno','f-opo','f-cefo','f-notes'].includes(el.id)){const st=draftFor();st[el.id.slice(2)]=el.value;
-  const ms=$('#ms'),d=state.night,u=FLIGHT_OF_DAY[WD(d)];if(ms)ms.value=missionSummary(d,u,st);const btn=document.querySelector('[data-savestaff]');if(btn)btn.disabled=false}});
+document.addEventListener('input',e=>{const el=e.target,d=el.dataset;
+  if(d.rc){state.rc[d.rc]=el.value;const card=document.querySelector('.receipt');if(card)card.outerHTML=receiptCard(state.rc);const post=$('#rc-post');if(post)post.value=forumLine(state.rc);
+    const bb=document.querySelector('[data-copytext]');if(bb)bb.dataset.copytext=receiptBB(state.rc);return}
+  if(el.id==='order-text'){state.orderText=el.value;clearTimeout(state.ot);state.ot=setTimeout(()=>route(true),400);return}
+  if(['f-warno','f-opo','f-cefo','f-notes'].includes(el.id)){draftFor()[el.id.slice(2)]=el.value;staffChanged(false)}
+  else if(d.who){const[ci,si]=d.who.split('|').map(Number);draftFor().crews[ci].slots[si].who=el.value;staffChanged(false)}
+  else if(d.role){const[ci,si]=d.role.split('|').map(Number);draftFor().crews[ci].slots[si].role=el.value;staffChanged(false)}});
 document.addEventListener('change',async e=>{const el=e.target,d=el.dataset;
+  if(d.who||d.role){route(true);return}   // show the fill-in note once a name is settled
+  if(el.id==='rc-order'){const o=(D.logi||[]).find(x=>x.ref===el.value);state.rc=receiptFrom(o||null);route(true);return}
+  if(d.rc==='type'){const p=pkgOf(el.value);state.rc.dims=p?.dims||'N/A';state.rc.weight=suggestWeight(el.value,state.rc.ref||'x');route(true);return}
   if(d.done){el.checked?state.done.add(d.done):state.done.delete(d.done);saveDone();route(true)}
-  else if(d.slot){const[ci,s]=d.slot.split('|');draftFor().crews[+ci].slots[s]=el.value;route(true)}
-  else if(d.check){const[key,i]=d.check.split('|'),c=JSON.parse(JSON.stringify(entry('check',state.night)||{}));(c[key]=c[key]||[])[+i]=el.checked;await saveEntry('check',state.night,c);route(true)}
-  else if(d.cas){await saveEntry('setting','cas|'+d.cas,el.value);toast('Saved');route(true)}
-  else if(el.id==='cefo-def'){await saveEntry('setting','cefo',el.value.trim());toast('Saved')}
-  else if(d.perm){const[r,p]=d.perm.split('-').map(Number),m=JSON.parse(JSON.stringify(roles(state.roleUnit)));m[r][p]=el.checked?1:0;await saveEntry('roles',state.roleUnit,m)}
+  else if(d.check){const[key,i]=d.check.split('|'),c=JSON.parse(JSON.stringify(entry('check',state.night)||{}));(c[key]=c[key]||[])[+i]=el.checked;if(await saveEntry('check',state.night,c))route(true);else el.checked=!el.checked}
+  else if(d.cas){if(await saveEntry('setting','cas|'+d.cas,el.value))toast('Saved');route(true)}
+  else if(el.id==='cefo-def'){if(await saveEntry('setting','cefo',el.value.trim()))toast('Saved')}
+  else if(d.perm){const[r,p]=d.perm.split('-').map(Number),m=JSON.parse(JSON.stringify(roles(state.roleUnit)));m[r][p]=el.checked?1:0;if(!await saveEntry('roles',state.roleUnit,m))el.checked=!el.checked}
   else if(el.id==='roleunit'){state.roleUnit=el.value;route(true)}
-  else if(el.id==='viewer'){state.viewer=el.value;route(true)}
   else if(d.cycKind!==undefined||d.cycName!==undefined||d.cycWeeks!==undefined){const c=JSON.parse(JSON.stringify(CYCLE()));
     if(d.cycKind!==undefined){const b=c.blocks[+d.cycKind];b.kind=el.value;if(el.value!=='op')b.name=el.value==='pdt'?'PDT':'Admin'}
     if(d.cycName!==undefined)c.blocks[+d.cycName].name=el.value.trim()||'Unnamed';
@@ -731,11 +950,15 @@ document.addEventListener('change',async e=>{const el=e.target,d=el.dataset;
   else if(el.id==='anchor'&&el.value){const x=mon(el.value);x.setUTCDate(x.getUTCDate()-((x.getUTCDay()+6)%7));const c=JSON.parse(JSON.stringify(CYCLE()));c.anchor=iso(x);await saveEntry('cycle','cycle',c);route(true)}
 });
 
-/* ---------- start: cached data first, then refresh in the background ---------- */
-const cached=store('jac-cache-v1');
-if(cached){Object.assign(D,cached);applyData();setSync('busy',`Showing ${new Date(cached.read).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}, refreshing`)}
-route();
-loadAll();
+/* ---------- start: are we on the cockpit server? then cached data first, refresh in the background ---------- */
+async function boot(){
+  try{const r=await fetch('/api/me',{credentials:'same-origin',headers:{Accept:'application/json'}});
+    if(r.status===200||r.status===401){const j=await r.json();MODE='server';ME=r.status===200?j:null}}catch(e){}
+  const cached=store('jac-cache-v1');
+  if(cached){if(!isMember())['ua','roster','logi','reinsert','receipt','limits'].forEach(k=>delete cached[k]);Object.assign(D,cached);applyData();setSync('busy',`Showing ${new Date(cached.read).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}, refreshing`)}
+  renderAcct();route();loadAll();
+}
+boot();
 setInterval(()=>{if(document.visibilityState==='visible')loadAll()},10*60*1000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&D.read&&Date.now()-new Date(D.read)>5*60*1000)loadAll()});
 </script>

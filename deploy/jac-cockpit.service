@@ -1,0 +1,13 @@
+[Unit]
+Description=JAC Admin Cockpit
+After=network-online.target
+
+[Service]
+User=jac
+WorkingDirectory=/opt/jac-cockpit
+EnvironmentFile=/etc/jac-cockpit.env
+ExecStart=/opt/jac-cockpit/.venv/bin/uvicorn server.app:app --host 127.0.0.1 --port 8080 --proxy-headers --no-access-log
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

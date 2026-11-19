@@ -1,0 +1,5 @@
+# Replace cockpit.example.org with the domain that points at the VPS. Caddy gets the HTTPS certificate itself.
+cockpit.example.org {
+	encode gzip
+	reverse_proxy 127.0.0.1:8080
+}
