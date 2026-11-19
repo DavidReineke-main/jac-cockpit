@@ -1,0 +1,760 @@
+<title>JAC Admin Cockpit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: quiet app shell, header with text tabs, one column of content per view.
+   Direction: calm, exact, dry like an ops log. Graphite surfaces, muted RAF blue accent.
+   Moment: the op-night strip. Signature: deadlines as DTG in mono.
+   Redesigned with unslop by Damir Sokolovsky (@heydamir), CC BY 4.0 */
+:root{
+  --bg:#fafafa; --card:#ffffff; --raised:#f4f4f5; --line:rgba(23,23,23,.08); --line-strong:rgba(23,23,23,.14);
+  --fg:#171717; --fg2:#525252; --fg3:#737373;
+  --accent:#2f5d9a; --accent-ink:#2a5590; --on-accent:#ffffff;
+  --pos:#16a34a; --neg:#dc2626; --caution:#b45309;
+  --f-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141415; --card:#19191b; --raised:#232325; --line:rgba(237,237,237,.08); --line-strong:rgba(237,237,237,.14);
+  --fg:#ededed; --fg2:#a1a1a6; --fg3:#85858b;
+  --accent:#8db2e8; --accent-ink:#8db2e8; --on-accent:#141415;
+  --pos:#4cc38a; --neg:#e5484d; --caution:#e0a84a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141415; --card:#19191b; --raised:#232325; --line:rgba(237,237,237,.08); --line-strong:rgba(237,237,237,.14);
+  --fg:#ededed; --fg2:#a1a1a6; --fg3:#85858b;
+  --accent:#8db2e8; --accent-ink:#8db2e8; --on-accent:#141415;
+  --pos:#4cc38a; --neg:#e5484d; --caution:#e0a84a; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-ui);font-size:14px;line-height:20px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1120px;margin:0 auto}
+@media (min-width:720px){.wrap{padding-left:max(32px,env(safe-area-inset-left,0px));padding-right:max(32px,env(safe-area-inset-right,0px))}}
+
+/* header */
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.bar{display:flex;align-items:center;gap:24px;height:56px}
+.logo{font-size:16px;font-weight:500;white-space:nowrap}
+.logo span{color:var(--fg3);font-weight:400}
+nav.tabs{display:flex;gap:4px;overflow-x:auto;margin-right:auto;scrollbar-width:none}
+nav.tabs a{display:flex;align-items:center;gap:8px;height:32px;padding:0 12px;border-radius:8px;color:var(--fg2);text-decoration:none;white-space:nowrap;transition:background-color .15s var(--ease),color .15s var(--ease)}
+nav.tabs a:hover{background:var(--raised);color:var(--fg)}
+nav.tabs a[aria-current="page"]{background:var(--raised);color:var(--fg);box-shadow:inset 0 0 0 1px var(--line)}
+nav.tabs .n{font-family:var(--f-mono);font-size:12px;color:var(--neg)}
+.who{font-size:13px;color:var(--fg3);white-space:nowrap}
+@media (max-width:720px){.bar{height:auto;flex-wrap:wrap;gap:8px 16px;padding-block:12px}.who{margin-left:auto}nav.tabs{order:3;width:100%;margin-right:0}}
+
+a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* page */
+main{padding-block:40px 80px;display:grid;grid-template-columns:minmax(0,1fr);gap:40px}
+h1,h2{margin:0;font-weight:500;text-wrap:balance}
+h1{font-size:28px;line-height:34px}
+h2{font-size:15px;line-height:20px}
+.sub{color:var(--fg2);margin:8px 0 0;max-width:62ch}
+.meta{color:var(--fg3);font-size:13px}
+.mono{font-family:var(--f-mono);font-size:12px;font-variant-numeric:tabular-nums}
+.head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px}
+
+/* buttons */
+button{font:inherit;cursor:pointer}
+.btn{height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--line-strong);background:var(--card);color:var(--fg);white-space:nowrap;transition:background-color .15s var(--ease),border-color .15s var(--ease),transform .12s var(--ease)}
+.btn:hover{background:var(--raised)}
+.btn:active{transform:scale(.98)}
+.btn.primary{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.btn.primary:hover{opacity:.9}
+.link{background:none;border:0;padding:0;color:var(--accent-ink);font-size:13px;white-space:nowrap}
+.link:hover{text-decoration:underline}
+.link[disabled]{color:var(--fg3);cursor:default;text-decoration:none}
+
+/* op-night strip: the one moment */
+.strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.night{padding:16px;display:grid;gap:12px;align-content:start}
+.night.next{box-shadow:inset 0 0 0 1px var(--accent)}
+.night .d{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.night .d b{font-weight:500}
+.units{display:grid;gap:8px}
+.u{display:grid;grid-template-columns:8px minmax(0,1fr) auto;gap:8px;align-items:center;font-size:13px}
+.u i{width:8px;height:8px;border-radius:2px;background:var(--raised);box-shadow:inset 0 0 0 1px var(--line-strong)}
+.u.ok i{background:var(--pos);box-shadow:none}
+.u.open i{background:var(--caution);box-shadow:none}
+.u.late i{background:var(--neg);box-shadow:none}
+.u span:last-child{color:var(--fg3)}
+.prog{height:4px;border-radius:2px;background:var(--raised);overflow:hidden}
+.prog i{display:block;height:100%;background:var(--accent)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px}
+.legend span{display:flex;gap:8px;align-items:center}
+.legend i{width:8px;height:8px;border-radius:2px;display:inline-block}
+@media (max-width:900px){.strip{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}}
+
+/* list rows */
+.list{display:grid}
+.row{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 16px;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row input[type=checkbox]{width:16px;height:16px;margin:0;accent-color:var(--fg)}
+.row .t{display:block}
+.row.done .t{color:var(--fg3);text-decoration:line-through}
+.row .right{display:flex;gap:16px;align-items:center;justify-content:flex-end}
+.due{color:var(--fg3)}
+.due.over{color:var(--neg)}
+.more{padding:12px 16px;border-top:1px solid var(--line)}
+@media (max-width:560px){.row{grid-template-columns:20px minmax(0,1fr)}.row .right{grid-column:2;justify-content:flex-start}}
+
+/* status text with dot */
+.st{display:inline-flex;align-items:center;gap:8px;font-size:13px;white-space:nowrap}
+.st::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--fg3)}
+.st.ok::before{background:var(--pos)} .st.open::before{background:var(--caution)} .st.late::before{background:var(--neg)}
+
+/* LOA rows */
+.loa{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.6fr) minmax(0,1.2fr) auto;gap:16px;align-items:center;padding:12px 16px;border-top:1px solid var(--line)}
+.loa:first-child{border-top:0}
+.loa q{color:var(--fg2);quotes:"“" "”"}
+.loa.headrow{color:var(--fg3);font-size:13px;padding-block:8px}
+@media (max-width:760px){.loa{grid-template-columns:minmax(0,1fr)}.loa.headrow{display:none}}
+
+/* night prep */
+.seg{display:inline-flex;gap:4px;padding:4px;background:var(--raised);border-radius:10px}
+.seg button{height:28px;padding:0 12px;border:0;border-radius:6px;background:none;color:var(--fg2)}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.06),inset 0 0 0 1px var(--line)}
+.cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start}
+.col .ch{padding:16px;display:grid;gap:12px;border-bottom:1px solid var(--line)}
+.col .ch div{display:flex;justify-content:space-between;gap:8px}
+.check{display:grid;grid-template-columns:16px minmax(0,1fr);gap:12px;padding:12px 16px;border-top:1px solid var(--line)}
+.check:first-of-type{border-top:0}
+.check input{width:16px;height:16px;margin:2px 0 0;accent-color:var(--fg)}
+.check label{cursor:pointer}
+.check small{display:block;color:var(--fg3);font-size:13px}
+@media (max-width:860px){.cols{grid-template-columns:minmax(0,1fr)}}
+
+/* summaries */
+.sum{padding:20px;display:grid;gap:16px}
+.sum .top{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:baseline}
+.figs{display:flex;gap:32px;flex-wrap:wrap}
+.figs div{display:grid;gap:4px}
+.figs dt{color:var(--fg3);font-size:13px}
+.figs dd{margin:0;font-size:20px;line-height:24px;font-variant-numeric:tabular-nums}
+.sum .acts{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+details summary{cursor:pointer;color:var(--fg3);font-size:13px;width:max-content}
+details pre{margin:8px 0 0;padding:12px 16px;background:var(--raised);border-radius:8px;font-family:var(--f-mono);font-size:12px;line-height:18px;white-space:pre-wrap;color:var(--fg2)}
+
+/* roles */
+select,input[type=text]{font:inherit;height:32px;padding:0 8px;border:1px solid var(--line-strong);border-radius:8px;background:var(--card);color:var(--fg)}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:680px}
+th,td{text-align:left;padding:12px 16px;border-top:1px solid var(--line);vertical-align:middle}
+thead th{border-top:0;color:var(--fg3);font-weight:400;font-size:13px}
+.matrix th:not(:first-child),.matrix td:not(:first-child){text-align:center}
+.matrix input{width:16px;height:16px;accent-color:var(--fg)}
+.foot{padding:12px 16px;border-top:1px solid var(--line);color:var(--fg3);font-size:13px}
+
+/* deployment cycle */
+.cyc{display:flex;gap:4px}
+.cyc>div{flex:var(--w) 1 0;min-width:0;padding:12px;border-radius:12px;background:var(--card);border:1px solid var(--line);display:grid;gap:4px;align-content:start}
+.cyc>div b{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cyc>div .mono,.cyc>div .wk{color:var(--fg3);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cyc>div.now{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.cyc>div.now .wk{color:var(--accent-ink)}
+.cyc>div.past{background:transparent}
+.ticks{display:flex;gap:2px;margin-top:4px}
+.ticks em{flex:1;height:4px;border-radius:2px;background:var(--raised)}
+.ticks em.on{background:var(--accent)}
+@media (max-width:640px){.cyc{flex-direction:column}}
+
+/* ORBAT */
+.orbat-top{display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap}
+.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.orbat{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:24px;align-items:start}
+@media (max-width:960px){.orbat{grid-template-columns:minmax(0,1fr)}}
+.units-col{display:grid;gap:16px}
+.sqn .sh{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:16px 16px 12px;flex-wrap:wrap}
+.flight-label{display:flex;justify-content:space-between;gap:8px;padding:8px 16px;border-top:1px solid var(--line);color:var(--fg3);font-size:13px;background:var(--raised)}
+.person{display:grid;grid-template-columns:64px minmax(0,1fr) 96px 120px;gap:12px;align-items:center;width:100%;padding:8px 16px;min-height:44px;border:0;border-top:1px solid var(--line);background:none;color:var(--fg);text-align:left;font:inherit;cursor:pointer;transition:background-color .15s var(--ease)}
+.flight-label + .person{border-top:0}
+.person:hover{background:var(--raised)}
+.person .rk{font-family:var(--f-mono);font-size:12px;color:var(--fg2)}
+.person .nm{min-width:0}
+.person .nm span{display:block;color:var(--fg3);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.person .gap{font-size:13px;color:var(--fg3);text-align:right;white-space:nowrap}
+.person .gap.warn{color:var(--caution)}
+.person .gap.ready{color:var(--pos)}
+.meter{height:4px;border-radius:2px;background:var(--raised);overflow:hidden}
+.person:hover .meter{background:var(--card)}
+.meter i{display:block;height:100%;background:var(--accent)}
+.meter.none,.person:hover .meter.none{background:transparent}
+@media (max-width:600px){.person{grid-template-columns:56px minmax(0,1fr) 104px}.person .meter{display:none}}
+details.res summary{padding:12px 16px;border-top:1px solid var(--line);list-style:none}
+details.res summary::-webkit-details-marker{display:none}
+.side{display:grid;gap:16px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 80px)}
+.side .card{padding:16px;display:grid;gap:12px}
+.demand{display:grid;gap:8px}
+.demand div{display:grid;grid-template-columns:minmax(0,1fr) 24px;gap:4px 8px;align-items:center;font-size:13px}
+.demand .meter{grid-column:1 / -1}
+.demand b{font-weight:400;font-family:var(--f-mono);font-size:12px;text-align:right;color:var(--fg2)}
+.side ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.side li button{background:none;border:0;padding:4px 0;font:inherit;color:var(--fg);cursor:pointer;text-align:left}
+.side li button:hover{color:var(--accent-ink)}
+/* person sheet */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.28);z-index:30}
+.sheet{position:fixed;top:0;right:0;bottom:0;width:min(440px,100%);background:var(--card);border-left:1px solid var(--line);z-index:31;overflow-y:auto;
+  padding:calc(24px + env(safe-area-inset-top,0px)) max(24px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) 24px;display:grid;gap:24px;align-content:start;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+.sheet .x{position:absolute;top:calc(16px + env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px))}
+.sheet h2{font-size:20px;line-height:26px}
+.kv2{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 16px;font-size:13px;margin:0}
+.kv2 dt{color:var(--fg3)} .kv2 dd{margin:0}
+.reqs{display:grid}
+.req{display:grid;grid-template-columns:16px minmax(0,1fr) auto;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+.req .ic{width:16px;height:16px;border-radius:50%;box-shadow:inset 0 0 0 1px var(--line-strong)}
+.req.ok .ic{background:var(--pos);box-shadow:none}
+.req.ok span:nth-child(2){color:var(--fg2)}
+.note-line{font-size:13px;color:var(--fg3)}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(24px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:8px 16px;border-radius:8px;font-size:13px;z-index:20}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header class="top">
+  <div class="wrap bar">
+    <div class="logo">JAC Cockpit <span>4th IB</span></div>
+    <nav class="tabs" id="tabs" aria-label="Views"></nav>
+    <div class="who">Air Wing 2IC</div>
+  </div>
+</header>
+<div class="wrap"><main id="view"></main></div>
+<div class="toast" id="toast" hidden role="status"></div>
+<div id="sheet-root"></div>
+
+<!-- Snapshot of the "Input" tab of ORBAT and Course Tracker - JAC, read 19 Nov 2026 15:30 GMT.
+     In the hosted dashboard this is fetched from the sheet's CSV export on a schedule. -->
+<!-- Snapshots read 19 Nov 2026 15:30 GMT: Unit Attendance (JAC tab), ORBAT 2.0 (JAC blocks), Requested Logistics -->
+<script type="application/json" id="sheets-data">__SHEETS_DATA__</script>
+<script type="application/json" id="orbat-data">__ORBAT_DATA__</script>
+
+<script>
+/* ---------- Sample data (fictional names, prototype only) ---------- */
+const NOW = new Date('2026-11-19T15:30:00Z');
+
+const UNITS = {
+  '18A':{name:'No. 18 Sqn, Alpha Flight',short:'18 Alpha'},
+  '18B':{name:'No. 18 Sqn, Bravo Flight',short:'18 Bravo'},
+  '18C':{name:'No. 18 Sqn, Charlie Flight',short:'18 Charlie'},
+  '662':{name:'No. 662 Sqn AAC',short:'662'},
+  'ALIC':{name:'Air Land Integration Cell',short:'ALIC'}
+};
+
+/* ---------- Deployment cycle ----------
+   Maintained by JAC HQ in Setup. Blocks run back to back from the anchor Monday; each is an operation,
+   admin or PDT with a number of weeks. Every week label in the cockpit is derived from this list. */
+const CYCLE={anchor:'2026-08-31',blocks:[
+  {id:'b1',kind:'op',name:'Op PALADIN',weeks:10},
+  {id:'b2',kind:'admin',name:'Admin',weeks:1},
+  {id:'b3',kind:'pdt',name:'PDT',weeks:4},
+  {id:'b4',kind:'admin',name:'Admin',weeks:2},
+  {id:'b5',kind:'op',name:'Next operation',weeks:10}
+]};
+const DAY=864e5,mon=s=>new Date(s+'T00:00:00Z');
+function cycleBlocks(){let t=mon(CYCLE.anchor).getTime();return CYCLE.blocks.map(b=>{const s=t;t+=b.weeks*7*DAY;return{...b,start:new Date(s),end:new Date(t-DAY)}})}
+function weekOf(d){const x=typeof d==='string'?mon(d):d;for(const b of cycleBlocks()){if(x>=b.start&&x<=new Date(b.end.getTime()+DAY-1))return{b,n:Math.floor((x-b.start)/(7*DAY))+1}}return null}
+function weekLabel(d){const w=weekOf(d);if(!w)return'Outside the cycle';
+  return w.b.kind==='admin'?`Admin week${w.b.weeks>1?` ${w.n} of ${w.b.weeks}`:''}`:w.b.kind==='pdt'?`PDT Week ${w.n}`:`${w.b.name} W${w.n}`}
+const shortDate=d=>d.toLocaleDateString('en-GB',{day:'numeric',month:'short',timeZone:'UTC'});
+
+const NIGHTS = [
+  {id:'n0',date:'2026-11-04',label:'Wed 4 Nov',flight:'18C',
+   items:{'18C':{att:'done',pr:'signed'},'662':{att:'done',pr:'signed'},'ALIC':{att:'done',pr:'signed'}},form3:'done'},
+  {id:'n1',date:'2026-11-07',label:'Sat 7 Nov',flight:'18A',
+   items:{'18A':{att:'done',pr:'signed'},'662':{att:'done',pr:'signed'},'ALIC':{att:'done',pr:'signed'}},form3:'done'},
+  {id:'n2',date:'2026-11-08',label:'Sun 8 Nov',flight:'18B',
+   items:{'18B':{att:'done',pr:'posted'},'662':{att:'done',pr:'signed'},'ALIC':{att:'done',pr:'signed'}},form3:'done'},
+  {id:'n3',date:'2026-11-18',label:'Wed 18 Nov',flight:'18C',
+   items:{'18C':{att:'missing',pr:'posted'},'662':{att:'missing',pr:'missing'},'ALIC':{att:'done',pr:'posted'}},form3:'open'}
+];
+const UPCOMING = [{label:'Sat 21 Nov',date:'2026-11-21',flight:'18A',prep:'Sat 21 Nov'},{label:'Sun 22 Nov',date:'2026-11-22',flight:'18B',prep:'Sun 22 Nov'}];
+[...NIGHTS,...UPCOMING].forEach(n=>Object.defineProperty(n,'op',{get:()=>weekLabel(n.date)}));
+const deadline = n => new Date(new Date(n.date+'T19:00:00Z').getTime()+48*3600e3);
+
+/* LOA check, forum only: LOA threads in the flight forums vs the state entered in the attendance tracker.
+   loa: time the LOA thread was posted (null = none). att: state in the tracker (null = not entered yet). */
+const LOAS = [
+  {id:'l1',who:'FSAcr K. Pike',unit:'18A',night:'Sat 21 Nov',nightStart:'2026-11-21T19:00:00Z',loa:'19 Nov 10:12',att:null},
+  {id:'l2',who:'Plt Off R. Marsh',unit:'18B',night:'Sun 22 Nov',nightStart:'2026-11-22T19:00:00Z',loa:'18 Nov 21:06',att:null},
+  {id:'l3',who:'Off Cdt L. Brandt',unit:'18C',night:'Wed 18 Nov',nightStart:'2026-11-18T19:00:00Z',loa:'18 Nov 17:31',att:'Excused'},
+  {id:'l4',who:'A/SAcr J. Rowe',unit:'18B',night:'Sun 8 Nov',nightStart:'2026-11-08T19:00:00Z',loa:null,att:'Excused'},
+  {id:'l5',who:'AirTpr D. Kerr',unit:'662',night:'Sun 8 Nov',nightStart:'2026-11-08T19:00:00Z',loa:'6 Nov 20:44',att:'Absent'},
+  {id:'l6',who:'SAcr M. Quinn',unit:'18A',night:'Sat 7 Nov',nightStart:'2026-11-07T19:00:00Z',loa:'5 Nov 18:30',att:'Excused'}
+];
+
+const PREP = {
+  'Sat 21 Nov':{date:'2026-11-21',cols:[
+    {unit:'18A',items:[['Logistics orders checked','Requested Logistics, ETA this night',true],['Slotting posted','Flight IC',true],['Crew confirmed','Flight 2IC',false],['J3 taskings received','2 of 3 Coy requests in',false],['Briefing posted','Flight IC',false],['LOAs checked','1 without forum LOA',false]]},
+    {unit:'662',items:[['Slotting posted','662 IC',true],['J3 taskings received','CAS window from Coy',true],['Briefing posted','662 IC',false],['LOAs checked','1 without forum LOA',false]]},
+    {unit:'ALIC',items:[['FAC and JTAC slots filled','ALIC IC',true],['Radio plan set','95, 22, Fluid, 99',true],['Briefing posted','ALIC IC',false]]}]},
+  'Sun 22 Nov':{date:'2026-11-22',cols:[
+    {unit:'18B',items:[['Slotting posted','Flight IC',false],['Crew confirmed','Flight 2IC',false],['J3 taskings received','None yet',false],['Briefing posted','Flight IC',false],['LOAs checked','1 forum LOA',true]]},
+    {unit:'662',items:[['Slotting posted','662 IC',false],['J3 taskings received','',false],['Briefing posted','662 IC',false],['LOAs checked','',true]]},
+    {unit:'ALIC',items:[['FAC and JTAC slots filled','You fill in as FAC',false],['Radio plan set','95, 22, Fluid, 99',true],['Briefing posted','ALIC IC',false]]}]},
+  'Wed 25 Nov':{date:'2026-11-25',cols:[
+    {unit:'18C',items:[['Slotting posted','Flight IC',false],['Crew confirmed','Flight 2IC',false],['Training plan posted','From the PDT plan',false],['LOAs checked','',false]]},
+    {unit:'662',items:[['Slotting posted','662 IC',false],['Training plan posted','',false]]},
+    {unit:'ALIC',items:[['FAC and JTAC slots filled','',false],['Training plan posted','',false]]}]}
+};
+
+// Ranks per squadron, from SOP 9-7 Joint Aviation Command Ranks (forum, Section 09)
+const RANKS = {
+  '18':['Flt Lt, Squadron OC','Flt Lt, Flight IC','Fg Off, Flight 3IC','Plt Off, pilot','Off Cdt, pilot trainee','MAcr, Squadron 2IC','FSAcr, Flight 2IC','SAcr, aircrew','A/SAcr, aircrew'],
+  '662':['Lt, Squadron IC','2Lt, Squadron IC (probation)','SSgt, Squadron 2IC','Sgt, Flight IC / CPG','Cpl, pilot','Air Tpr, trainee'],
+  'ALIC':['Sgt, Squadron IC','Cpl, Squadron 2IC','LCpl, JTAC / FAC','AS1','AS2']
+};
+const PERMS = ['Attendance','LOA check','Night prep','Fill-ins','Sign off','Assign tasks'];
+const ROLE_DEFAULT = {
+  '18':[[1,1,1,1,1,1],[1,1,1,1,1,1],[1,1,1,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0],[1,1,1,1,1,1],[1,1,1,1,0,1],[0,0,0,0,0,0],[0,0,0,0,0,0]],
+  '662':[[1,1,1,1,1,1],[1,1,1,1,1,1],[1,1,1,1,1,1],[1,1,1,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]],
+  'ALIC':[[1,1,1,1,1,1],[1,1,1,1,1,1],[0,0,1,0,0,0],[0,0,0,0,0,0],[0,0,0,0,0,0]]
+};
+const TEMPLATES = {
+  '18':[['Enter flight attendance','Flt Lt, Flight IC','48h after op'],['Check flight LOAs','FSAcr, Flight 2IC','Before the night'],['Post patrol report','Flt Lt, Flight IC','48h after op'],['Run monthly flight training course','FSAcr, Flight 2IC','Monthly'],['Run EFS selection','Flt Lt, Squadron OC','Monthly'],['Investigate airframe loss','Flt Lt, Squadron OC','7 days'],['Shadow night for new crew','MAcr, Squadron 2IC','Monthly']],
+  '662':[['Enter attendance','Sgt, Flight IC / CPG','48h after op'],['Post patrol report','Sgt, Flight IC / CPG','48h after op'],['Run squadron training course','Lt, Squadron IC','Monthly']],
+  'ALIC':[['Enter attendance','Sgt, Squadron IC','48h after op'],['Post patrol report','Sgt, Squadron IC','48h after op'],['Run monthly squadron training course','Sgt, Squadron IC','Monthly'],['Update ALIC course material','Cpl, Squadron 2IC','Each deployment']]
+};
+
+/* ---------- State ---------- */
+window.RANKS_BY_UNIT=RANKS;
+const state={done:new Set(),nudged:new Set(),resolved:new Set(),showAll:false,prepNight:'Sat 21 Nov',roleUnit:'18',
+  roles:JSON.parse(JSON.stringify(ROLE_DEFAULT)),templates:JSON.parse(JSON.stringify(TEMPLATES))};
+
+/* ---------- Helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(t){const el=$('#toast');el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2400)}
+function dtg(d){const m=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'],p=n=>String(n).padStart(2,'0');return `${p(d.getUTCDate())}${p(d.getUTCHours())}${p(d.getUTCMinutes())}Z ${m[d.getUTCMonth()]}`}
+
+/* ---------- Tasks derived from the 2IC responsibilities ---------- */
+function buildTasks(){
+  const t=[];
+  NIGHTS.forEach(n=>{const dl=deadline(n);
+    Object.entries(n.items).forEach(([u,it])=>{const s=UNITS[u].short;
+      if(it.att==='missing')t.push({id:`att-${n.id}-${u}`,title:`${s} attendance not entered`,ctx:`Attendance tracker · ${n.label}`,due:dl,act:'ping',who:s});
+      if(it.pr==='posted')t.push({id:`pr-${n.id}-${u}`,title:`Sign off ${s} patrol report`,ctx:`Patrol reports · ${n.label}`,due:dl,act:'open'});
+      if(it.pr==='missing')t.push({id:`prm-${n.id}-${u}`,title:`${s} patrol report not posted`,ctx:`Patrol reports · ${n.label}`,due:dl,act:'ping',who:s});
+      const us=uaStatus(u,n.date);
+      if(us==='missing'||us==='partial')t.push({id:`ua-${n.id}-${u}`,title:`${s} ${us==='partial'?'only partly in':'not in'} the Unit Attendance sheet`,ctx:`Unit attendance · ${n.label}`,due:dl,act:'ping',who:`${s} 2IC`});
+    });
+    if(n.form3==='open')t.push({id:`f3-${n.id}`,title:'Check Form 3 responses',ctx:`Drive · ${n.label}`,due:dl,act:'open'});
+  });
+  LOAS.forEach(l=>{const[c,txt]=loaState(l);if(c==='late')t.push({id:`loa-${l.id}`,title:`${l.who}: ${txt}`,ctx:`LOA check · ${UNITS[l.unit].short}, ${l.night}`,due:null,act:'loa'})});
+  const fut={};UA.future.forEach(f=>{const k=f.sec+f.date;(fut[k]=fut[k]||{...f,n:0}).n++});
+  Object.values(fut).forEach(f=>t.push({id:`uaf-${f.sec}-${f.date}`,title:`${f.sec.replace('-',' ')}: ${f.n} entr${f.n>1?'ies':'y'} for ${shortDate(mon(f.date))} before the night`,ctx:'Unit attendance · probably the wrong column',due:null,act:'ua'}));
+  t.push({id:'ua-hq-w3',title:'Enter JAC HQ attendance for the week of 16 Nov',ctx:'Unit attendance · JAC HQ',due:new Date('2026-11-24T19:00:00Z'),act:'ua'});
+  const rd=rosterDiff();if(rd.length)t.push({id:'roster',title:`Update the unit roster: ${rd.length} change${rd.length>1?'s':''}`,ctx:'ORBAT 2.0 · feeds the Unit Attendance names',due:null,act:'roster'});
+  t.push({id:'fillin',title:'Fill-in request from Burma Coy',ctx:'Drive · fill-in form',due:new Date('2026-11-21T12:00:00Z'),act:'open'});
+  t.push({id:'cefo',title:'Collect CEFO changes from 662, ALIC and 18 HQ',ctx:'Drive · end of deployment',due:null,act:'open'});
+  return t.sort((a,b)=>(a.due||Infinity)-(b.due||Infinity));
+}
+const isOver=t=>t.due&&t.due<NOW;
+// Rule from the attendance legend: Excused only with an LOA posted at least 3h before the night
+const MONTHS={Nov:10,Oct:9,Dec:11};
+function loaTime(s){const[d,m,hm]=s.split(' ');const[h,mi]=hm.split(':');return new Date(Date.UTC(2026,MONTHS[m],+d,+h,+mi))}
+function loaOnTime(l){return l.loa&&loaTime(l.loa)<=new Date(new Date(l.nightStart).getTime()-3*3600e3)}
+function loaState(l){
+  if(state.resolved.has(l.id))return['ok','Corrected'];
+  const onTime=loaOnTime(l);
+  if(!l.att)return[onTime?'ok':'open',onTime?'LOA on time, night ahead':'LOA under 3h before'];
+  if(l.att==='Excused'&&!l.loa)return['late','Excused without an LOA'];
+  if(l.att==='Excused'&&!onTime)return['late','Excused, but LOA under 3h before'];
+  if(l.att==='Absent'&&onTime)return['late','Absent, but LOA was on time'];
+  return['ok',`${l.att}, matches LOA`];
+}
+
+/* ---------- Other sheets: Unit Attendance, unit roster (ORBAT 2.0), logistics ---------- */
+const SHEETS=JSON.parse(document.getElementById('sheets-data').textContent);
+const UA=SHEETS.ua,ROSTER=SHEETS.roster,LOGI=SHEETS.logi;
+const SRC={
+  forum:{name:'Forum attendance tracker, LOAs, patrol reports',url:'https://4thib.co.uk/attendance.php',state:'Sample data in the prototype. Read from the forum in the hosted version'},
+  orbat:{name:'ORBAT and Course Tracker - JAC, Input tab',url:'https://docs.google.com/spreadsheets/d/1ALQxRZgGtflI0tm2lSOu5JJpt8fazxEu-Of3Q0TRANk/edit',state:'Read 19 Nov 15:30'},
+  ua:{name:'Unit Attendance, JAC tab',url:'https://docs.google.com/spreadsheets/d/13GOwG_tfkFuXcJt1tMu4f8RNaGRAvTpKhBbYcAqGZzA/edit?gid=290771582',state:'Read 19 Nov 15:30'},
+  roster:{name:'Unit roster, ORBAT 2.0',url:'https://docs.google.com/spreadsheets/d/1GRENwxiY7DC5fLbue12XAeLsa_wsnKCOy3vvGzcY_Ok/edit?gid=1766701879',state:'Read 19 Nov 15:30'},
+  logi:{name:'Logistics, Requested Logistics tab',url:'https://docs.google.com/spreadsheets/d/17yeIDGcKKAs13syNLe6sg5K-bp4pAMTe-urv2u-vutk/edit?gid=0',state:'Read 19 Nov 15:30'}
+};
+const WD=d=>['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][mon(d).getUTCDay()];
+const uaSec=(u,date)=>u.startsWith('18')?u:`${u}-${WD(date)}`;
+// Has the 2IC also put this night into the Unit Attendance sheet?
+function uaStatus(u,date){const s=UA.sections[uaSec(u,date)];if(!s)return'none';const c=s.cols[date];
+  if(c===undefined)return'nocol';if(c===0)return'missing';return c<s.members?'partial':'done'}
+const UNIT_LABEL={'18A':'18 A Flight','18B':'18 B Flight','18C':'18 C Flight','662':'662','ALIC':'ALIC','HQ':'JAC HQ'};
+const normRank=r=>(r||'').toLowerCase().replace(/[^a-z0-9\/]/g,'');
+function unitOf(p){if(p.sq==='JAC HQ')return'HQ';if(p.sq==='No. 18'){const m=(p.fl||'').match(/^([ABC]) Flight/);return m?'18'+m[1]:null}
+  if(p.sq==='No. 662')return'662';if(p.sq==='ALIC')return'ALIC';return null}
+// What JAC HQ has to change in ORBAT 2.0 so Unit Attendance shows the right people and ranks
+function rosterDiff(){
+  const act=ORBAT.people.map(p=>({p,u:unitOf(p)})).filter(x=>x.u),inAct=(u,n)=>act.some(a=>a.u===u&&a.p.name===n),out=[];
+  act.forEach(({p,u})=>{const r=ROSTER.find(r=>r.unit===u&&r.name===p.name);
+    if(!r){const other=ROSTER.find(r=>r.name===p.name&&!inAct(r.unit,r.name));
+      out.push(other?{kind:'move',name:p.name,rank:p.rank,from:other.unit,to:u}:{kind:'add',name:p.name,rank:p.rank,to:u});return}
+    if(normRank(r.rank)!==normRank(p.rank))out.push({kind:'rank',name:p.name,unit:u,from:r.rank,to:p.rank})});
+  ROSTER.forEach(r=>{if(!inAct(r.unit,r.name)&&!out.some(o=>o.kind==='move'&&o.name===r.name))out.push({kind:'remove',name:r.name,rank:r.rank,unit:r.unit})});
+  return out;
+}
+const FLIGHT_OF_DAY={Sat:'Alpha',Sun:'Bravo',Wed:'Charlie'};
+
+/* ---------- ORBAT and course tracker ---------- */
+const ORBAT=JSON.parse(document.getElementById('orbat-data').textContent);
+const SHEET_URL='https://docs.google.com/spreadsheets/d/1ALQxRZgGtflI0tm2lSOu5JJpt8fazxEu-Of3Q0TRANk/edit';
+ORBAT.people.forEach((p,i)=>{p.id='p'+i;p.done=new Set(p.done)});
+
+// Course requirements per rank, SOP Section 09, 9-7 Joint Aviation Command Ranks
+const add=(base,...c)=>[...base,...c];
+const R18C={'A/SAcr':['Phase 1']};R18C.SAcr=['Phase 1','DTT','JAC Signals','Basic Medical','Land Navigation','SERE A','Air Navigation','Advanced Medical','Cargo Handling','SERE B','Aerial Gunnery','Doctors Course'];R18C.FSAcr=add(R18C.SAcr,'DIT');R18C.MAcr=R18C.FSAcr;
+const R18P={'Off Cdt':['Phase 1']};R18P['Plt Off']=['Phase 1','DTT','Land Navigation','Air Navigation','JAC Signals','Basic Medical','SERE B','Wings','Initial CC'];R18P['Fg Off']=add(R18P['Plt Off'],'DIT','Advanced CC');R18P['Flt Lt']=R18P['Fg Off'];
+const R662={'Air Tpr':['Phase 1']};R662.Cpl=['Phase 1','JAC Signals','Land Navigation','Air Navigation','Basic Medical','Wings','Initial AC'];R662.Sgt=add(R662.Cpl,'DIT','Aircraft Denial','SERE B','Advanced AC');R662.SSgt=R662.Sgt;R662['2Lt']=R662.Sgt;R662.Lt=R662.Sgt;
+const RAL={AS2:['Phase 1','Basic Medical','UGL','Land Navigation','JAC Signals','Driving']};RAL.AS1=add(RAL.AS2,'Helicopter Handling','ECAS','Air Navigation','UAV');RAL.LCpl=add(RAL.AS1,'SERE A','JTAC','Forward Air Controller');RAL.Cpl=add(RAL.LCpl,'SAA','DIT');RAL.Sgt=RAL.Cpl;
+R18C.SuT=[];RAL.SuT=[];
+/* Steps up a ladder are one of three kinds:
+   direct   - the chain of command can promote once the courses are done (below NCO, no position attached)
+   position - the rank is a post (Flight IC, 2IC, Squadron IC). Only via an advertised vacancy and a promotion board
+   nco      - NCO rank without a fixed post; needs a recommendation by the chain of command, not offered here */
+const LADDERS={
+  crew18:{label:'No. 18 aircrew',ranks:['SuT','A/SAcr','SAcr','FSAcr','MAcr'],req:R18C,
+    step:{'A/SAcr':'direct',SAcr:'direct',FSAcr:'position',MAcr:'position'},post:{FSAcr:'Flight 2IC',MAcr:'Squadron 2IC'}},
+  pilot18:{label:'No. 18 pilots',ranks:['Off Cdt','Plt Off','Fg Off','Flt Lt'],req:R18P,
+    step:{'Plt Off':'direct','Fg Off':'position','Flt Lt':'position'},post:{'Fg Off':'Flight IC','Flt Lt':'Squadron OC'}},
+  sq662:{label:'No. 662',ranks:['Air Tpr','Cpl','Sgt','SSgt','2Lt','Lt'],req:R662,
+    step:{Cpl:'nco',Sgt:'position',SSgt:'position','2Lt':'position',Lt:'position'},post:{Sgt:'Flight IC',SSgt:'Squadron 2IC','2Lt':'Squadron IC',Lt:'Squadron IC'}},
+  alic:{label:'ALIC',ranks:['SuT','AS2','AS1','LCpl','Cpl','Sgt'],req:RAL,
+    step:{AS2:'direct',AS1:'direct',LCpl:'nco',Cpl:'position',Sgt:'position'},post:{Cpl:'Squadron 2IC',Sgt:'Squadron IC'}}
+};
+// Who holds which post, read from the active ORBAT (reserves hold no posts)
+const FLIGHT_POSTS=['Flight IC','Flight 2IC'];
+function holders(sq,post,fl){
+  const act=ORBAT.people.filter(p=>p.sq===sq),inFl=p=>!FLIGHT_POSTS.includes(post)||p.fl===fl;
+  const by={
+    'No. 18':{'Flight IC':p=>['Fg Off','Flt Lt'].includes(p.rank),'Flight 2IC':p=>p.rank==='FSAcr','Squadron 2IC':p=>p.rank==='MAcr','Squadron OC':p=>p.pos==='In Command'},
+    'No. 662':{'Flight IC':p=>p.rank==='Sgt','Squadron 2IC':p=>p.rank==='SSgt','Squadron IC':p=>['2Lt','Lt'].includes(p.rank)},
+    'ALIC':{'Squadron 2IC':p=>p.rank==='Cpl','Squadron IC':p=>p.rank==='Sgt'||p.pos==='In Command'}
+  }[sq]?.[post];
+  return by?act.filter(p=>inFl(p)&&by(p)):[];
+}
+function vacancies(){
+  const out=[],fls=sq=>[...new Set(ORBAT.people.filter(p=>p.sq===sq&&p.fl).map(p=>p.fl))];
+  [['No. 18',['Squadron OC','Squadron 2IC'],['Flight IC','Flight 2IC']],['No. 662',['Squadron IC','Squadron 2IC'],['Flight IC']],['ALIC',['Squadron IC','Squadron 2IC'],[]]].forEach(([sq,sqPosts,flPosts])=>{
+    sqPosts.forEach(po=>{if(!holders(sq,po).length)out.push({sq,post:po,fl:null})});
+    flPosts.forEach(po=>fls(sq).forEach(fl=>{if(!holders(sq,po,fl).length)out.push({sq,post:po,fl})}));
+  });
+  return out;
+}
+const baseSq=p=>p.sq.replace(/ (Crew |Pilots )?Reserve$/,'');
+function ladderOf(p){const b=baseSq(p);if(p.rank==='Sqn Ldr')return null; // JAC HQ appointment, attached to ALIC as IC
+  if(b==='No. 18')return LADDERS.crew18.ranks.includes(p.rank)?'crew18':'pilot18';
+  if(b==='No. 662')return'sq662'; if(b==='ALIC')return'alic'; return null}
+function progress(p){
+  const k=ladderOf(p);if(!k)return{k:null};const L=LADDERS[k],i=L.ranks.indexOf(p.rank);
+  if(i<0)return{k,unknown:true};
+  const miss=c=>(L.req[c]||[]).filter(x=>!p.done.has(x));
+  const next=L.ranks[i+1]||null;
+  const target=p.rank==='A/SAcr'?'SAcr':null; // acting rank: must attain SAcr courses (SOP 9-7)
+  const curMiss=target?[]:miss(p.rank);
+  const nextReq=next?L.req[next]:[];const nextMiss=next?miss(next):[];
+  const step=next?L.step[next]:null,post=next?L.post[next]||null:null,ready=!!next&&nextMiss.length===0;
+  let opening=null;
+  if(step==='position'){const sq=baseSq(p),flPost=FLIGHT_POSTS.includes(post);
+    opening=p.sq===sq&&!holders(sq,post,flPost?p.fl:null).length?{post,fl:flPost?p.fl:null}:null}
+  return{k,next,step,post,curMiss,acting:target?miss(target):null,nextReq,nextMiss,ready,opening,
+    promotable:ready&&step==='direct',
+    pct:next?Math.round((nextReq.length-nextMiss.length)/nextReq.length*100):100};
+}
+const flName=fl=>fl?fl.replace(/\s*\(\w+\)/,''):'';
+
+// Who is looking decides what can be managed (prototype role switch)
+const VIEWERS={
+  jac2ic:{label:'JAC 2IC',can:p=>true},
+  oc18:{label:'No. 18 Squadron OC',can:p=>baseSq(p)==='No. 18'},
+  ic18c:{label:'No. 18 C Flight IC',can:p=>baseSq(p)==='No. 18'&&/^C Flight/.test(p.fl)},
+  ic662:{label:'No. 662 Squadron IC',can:p=>baseSq(p)==='No. 662'},
+  icalic:{label:'ALIC Squadron IC',can:p=>baseSq(p)==='ALIC'},
+  member:{label:'Aircrew member',can:p=>false}
+};
+Object.assign(state,{viewer:'jac2ic',filter:'all',open:null,nominated:new Set(),boards:new Set()});
+
+function personRow(p){
+  const g=progress(p);let txt='',cls='';
+  if(!g.k){txt=''}
+  else if(g.unknown){txt='Rank not in SOP';cls='warn'}
+  else if(g.acting&&g.acting.length){txt=`${g.acting.length} to SAcr`;cls='warn'}
+  else if(g.curMiss.length){txt=`${g.curMiss.length} behind`;cls='warn'}
+  else if(!g.next){txt=''}
+  else if(g.step==='direct'){txt=g.ready?`Ready for ${g.next}`:`${g.nextMiss.length} to ${g.next}`;cls=g.ready?'ready':''}
+  else if(g.step==='position'){txt=g.opening?(g.ready?`Can apply, ${g.post} open`:`${g.post} open`):''}
+  else{txt=''}
+  const meter=g.k&&!g.unknown&&g.next&&g.step==='direct'?`<div class="meter" title="${g.pct}% of ${g.next} courses"><i style="width:${g.pct}%"></i></div>`:'<div class="meter none"></div>';
+  return `<button class="person" data-person="${p.id}"><span class="rk">${esc(p.rank||'–')}</span><span class="nm">${esc(p.name)}<span>${esc(p.pos)}</span></span>${meter}<span class="gap ${cls}">${esc(txt)}</span></button>`;
+}
+function passes(p){const g=progress(p);
+  if(state.filter==='gaps')return g.k&&(g.unknown||(g.acting&&g.acting.length)||g.curMiss?.length);
+  if(state.filter==='ready')return g.promotable;return true}
+function groupFlights(list){const m=new Map();list.forEach(p=>{const k=p.fl||'Unassigned';if(!m.has(k))m.set(k,[]);m.get(k).push(p)});return m}
+function flightBlock(list){return[...groupFlights(list)].map(([fl,ps])=>{const night=(fl.match(/\((\w+)\)/)||[])[1];
+  return `<div class="flight-label"><span>${esc(fl.replace(/\s*\(\w+\)/,''))}</span><span>${night?esc(night):''}</span></div>${ps.map(personRow).join('')}`}).join('')}
+
+function renderOrbat(){
+  const P=ORBAT.people,vis=P.filter(passes);
+  const sqs=[['No. 18','No. 18 Squadron, RAF','Chinook'],['No. 662','No. 662 Squadron, AAC','Apache'],['ALIC','Air Land Integration Cell, RAF Regiment','FAC and JTAC']];
+  const hq=vis.filter(p=>p.sq==='JAC HQ');
+  // course demand: courses most often missing for the next rank, active members only
+  // course demand: what active members need for their current rank or their next direct step
+  const dem={};P.filter(p=>!/Reserve|ELOA/.test(p.sq)).forEach(p=>{const g=progress(p);if(!g.k)return;
+    [...(g.acting||[]),...(g.curMiss||[]),...(g.step==='direct'?g.nextMiss:[])].forEach(c=>dem[c]=(dem[c]||0)+1)});
+  const top=Object.entries(dem).sort((a,b)=>b[1]-a[1]).slice(0,6),max=top[0]?top[0][1]:1;
+  const ready=P.filter(p=>progress(p).promotable&&!/ELOA/.test(p.sq));
+  const vac=vacancies().map(v=>({...v,cands:P.filter(p=>{const g=progress(p);return g.step==='position'&&g.post===v.post&&p.sq===v.sq&&(!v.fl||p.fl===v.fl)})}));
+  const behind=P.filter(p=>{const g=progress(p);return g.k&&((g.acting&&g.acting.length)||g.curMiss?.length)});
+  const active=P.filter(p=>!/Reserve|ELOA/.test(p.sq)&&p.sq!=='JAC HQ').length;
+  return `
+  <section class="orbat-top"><div><h1>ORBAT</h1><p class="sub">Joint Aviation Command, ${active} active members. From the ORBAT and Course Tracker, read 19 Nov 15:30</p></div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Filter">${[['all','Everyone'],['gaps','Behind on courses'],['ready','Ready for promotion']].map(([k,l])=>`<button aria-pressed="${state.filter===k}" data-filter="${k}">${l}</button>`).join('')}</div>
+      <select id="viewer" aria-label="Viewing as">${Object.entries(VIEWERS).map(([k,v])=>`<option value="${k}" ${k===state.viewer?'selected':''}>Viewing as ${v.label}</option>`).join('')}</select>
+    </div></section>
+  <section class="orbat">
+    <div class="units-col">
+      ${hq.length?`<div class="card sqn"><div class="sh"><h2>JAC HQ</h2><span class="meta">Air Wing command</span></div>${hq.map(personRow).join('')}</div>`:''}
+      ${sqs.map(([k,name,role])=>{const act=vis.filter(p=>p.sq===k),res=vis.filter(p=>baseSq(p)===k&&p.sq!==k);if(!act.length&&!res.length)return'';
+        return `<div class="card sqn"><div class="sh"><h2>${esc(name)}</h2><span class="meta">${esc(role)} · ${act.length} active${res.length?`, ${res.length} reserve`:''}</span></div>
+        ${flightBlock(act)}
+        ${res.length?`<details class="res" ${state.filter!=='all'?'open':''}><summary class="meta">Reserves (${res.length})</summary>${flightBlock(res)}</details>`:''}</div>`}).join('')}
+      ${(()=>{const e=vis.filter(p=>/ELOA/.test(p.sq));return e.length?`<details class="card res"><summary class="meta" style="border-top:0">ELOA and ARC (${e.length})</summary>${e.map(personRow).join('')}</details>`:''})()}
+    </div>
+    <aside class="side">
+      <div class="card"><h2>Open positions</h2><p class="note-line" style="margin:0">Posts nobody holds in the ORBAT. Filled by advert and promotion board</p>
+        ${vac.length?`<ul style="gap:12px">${vac.map(v=>`<li><span>${esc(v.sq)} ${esc(v.post)}${v.fl?`, ${esc(flName(v.fl))}`:''}</span>
+          <span class="meta" style="display:block">${v.cands.length?v.cands.map(p=>`<button data-person="${p.id}" style="padding:0;color:inherit;font-size:13px">${esc(p.rank)} ${esc(p.name)}${progress(p).ready?'':` (${progress(p).nextMiss.length} cse missing)`}</button>`).join(', '):'No one in line'}</span></li>`).join('')}</ul>`:'<p class="note-line" style="margin:0">All posts are filled</p>'}</div>
+      <div class="card"><h2>Ready for promotion</h2><p class="note-line" style="margin:0">Below NCO, all courses done</p>${ready.length?`<ul>${ready.map(p=>{const g=progress(p);return `<li><button data-person="${p.id}">${esc(p.rank)} ${esc(p.name)} <span class="meta">to ${esc(g.next)}</span></button></li>`}).join('')}</ul>`:'<p class="note-line" style="margin:0">Nobody right now</p>'}</div>
+      <div class="card"><h2>Courses most needed</h2><p class="note-line" style="margin:0">For current rank or next step, active members</p>
+        <div class="demand">${top.map(([c,n])=>`<div><span>${esc(c)}</span><b>${n}</b><div class="meter"><i style="width:${Math.round(n/max*100)}%"></i></div></div>`).join('')}</div></div>
+      <div class="card"><h2>Behind for their rank</h2>${behind.length?`<ul>${behind.map(p=>`<li><button data-person="${p.id}">${esc(p.rank)} ${esc(p.name)}</button></li>`).join('')}</ul>`:'<p class="note-line" style="margin:0">Everyone holds the courses for their rank</p>'}</div>
+      <a class="link" href="${SHEET_URL}" target="_blank" rel="noopener">Open the sheet</a>
+    </aside>
+  </section>`;
+}
+
+function renderSheet(){
+  const root=$('#sheet-root');const p=ORBAT.people.find(x=>x.id===state.open);
+  if(!p){root.innerHTML='';return}
+  const g=progress(p),can=VIEWERS[state.viewer].can(p),L=g.k?LADDERS[g.k]:null;
+  const reqRow=c=>{const ok=p.done.has(c),nom=state.nominated.has(p.id+c);
+    return `<div class="req ${ok?'ok':''}"><span class="ic" aria-hidden="true"></span><span>${esc(c)}${!ok&&nom?' <span class="meta">nominated</span>':''}</span>
+      <span>${!ok&&can?`${nom?'':`<button class="link" data-nominate="${esc(c)}">Nominate</button> `}<button class="link" data-pass="${esc(c)}" style="margin-left:12px">Mark passed</button>`:''}</span></div>`};
+  let body='';
+  if(!g.k)body=`<p class="note-line">No rank ladder in SOP 9-7 for ${esc(p.sq)}</p>`;
+  else if(g.unknown)body=`<p class="note-line">${esc(p.rank)} is not part of the ${esc(L.label)} ladder in SOP 9-7. The sheet may still show a rank from before the restructure</p>`;
+  else{
+    if(g.acting)body+=`<div><h2 style="font-size:15px">Acting rank, needs SAcr courses</h2><p class="note-line" style="margin:4px 0 8px">SOP 9-7: attain SAcr course requirements within 3 months</p><div class="reqs">${L.req.SAcr.map(reqRow).join('')}</div></div>`;
+    else if(g.curMiss.length)body+=`<div><h2 style="font-size:15px">Missing for current rank ${esc(p.rank)}</h2><div class="reqs" style="margin-top:8px">${g.curMiss.map(reqRow).join('')}</div></div>`;
+    if(g.next&&!g.acting&&g.step==='direct')body+=`<div><h2 style="font-size:15px">Towards ${esc(g.next)}</h2><p class="note-line" style="margin:4px 0 8px">${g.nextReq.length-g.nextMiss.length} of ${g.nextReq.length} courses. The chain of command can promote once all are done</p><div class="reqs">${g.nextReq.map(reqRow).join('')}</div></div>`;
+    if(g.next&&!g.acting&&g.step==='position'){const where=`${esc(g.post)}${FLIGHT_POSTS.includes(g.post)?` of ${esc(flName(p.fl))}`:''}`;
+      const held=holders(baseSq(p),g.post,FLIGHT_POSTS.includes(g.post)?p.fl:null);
+      body+=`<div><h2 style="font-size:15px">Next step is a post: ${esc(g.next)}, ${esc(g.post)}</h2>
+        <p class="note-line" style="margin:4px 0 8px">${g.opening?`The ${where} is open. ${g.ready?'Has the courses to apply when it is advertised':`Needs ${g.nextMiss.length} more course${g.nextMiss.length>1?'s':''} to apply`}`:p.sq!==baseSq(p)?'Reserves do not hold posts':`Held by ${held.map(h=>esc(h.rank+' '+h.name)).join(', ')}. Only possible when this post becomes vacant`}. Posts are advertised for 48h and filled by promotion board (SOP 9-5)</p>
+        <div class="reqs">${g.nextReq.map(c=>{const ok=p.done.has(c);return `<div class="req ${ok?'ok':''}"><span class="ic" aria-hidden="true"></span><span>${esc(c)}</span><span></span></div>`}).join('')}</div></div>`}
+    if(g.next&&!g.acting&&g.step==='nco')body+=`<p class="note-line">Next rank ${esc(g.next)} is an NCO rank. Promotion follows a recommendation by the chain of command and is not offered here</p>`;
+  }
+  const boardBtn=can&&g.promotable?(state.boards.has(p.id)?`<button class="btn" disabled>Promotion to ${esc(g.next)} requested</button>`:`<button class="btn primary" data-board="${p.id}">Promote to ${esc(g.next)}</button>`):'';
+  root.innerHTML=`<div class="scrim" data-close></div>
+  <aside class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <button class="btn x" data-close aria-label="Close">Close</button>
+    <div><span class="mono" style="color:var(--fg3)">${esc(p.rank||'No rank')}</span><h2 id="sheet-title">${esc(p.name)}</h2></div>
+    <dl class="kv2"><dt>Unit</dt><dd>${esc(p.sq)}</dd><dt>Flight</dt><dd>${esc(p.fl||'–')}</dd><dt>Position</dt><dd>${esc(p.pos||'–')}</dd>${p.wings?`<dt>Wings</dt><dd class="mono">${esc(p.wings)}</dd>`:''}</dl>
+    ${body}
+    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">${boardBtn}${p.uid?`<a class="link" href="https://4thib.co.uk/user-${esc(p.uid)}.html" target="_blank" rel="noopener">Forum profile</a>`:''}</div>
+    <p class="note-line">${can?'You can manage this member. Changes write back to the Input tab in the hosted version':'Read only. Managing this member needs their squadron or flight command'}</p>
+  </aside>`;
+  root.querySelector('.x').focus();
+}
+
+/* ---------- Views ---------- */
+const VIEWS={orbat:['ORBAT',renderOrbat],overview:['Admin',renderOverview],loa:['LOA check',renderLoa],prep:['Night prep',renderPrep],roles:['Setup',renderRoles]};
+function renderTabs(cur){
+  const over=buildTasks().filter(t=>!state.done.has(t.id)&&isOver(t)).length;
+  const loa=LOAS.filter(l=>loaState(l)[0]==='late').length;
+  const n={overview:over,loa};
+  $('#tabs').innerHTML=Object.entries(VIEWS).map(([k,[label]])=>`<a href="#${k}" ${k===cur?'aria-current="page"':''}>${label}${n[k]?`<span class="n" aria-label="${n[k]} need attention">${n[k]}</span>`:''}</a>`).join('');
+}
+
+function unitMark(n,u){
+  const it=n.items[u],over=deadline(n)<NOW,us=uaStatus(u,n.date),uaOk=!['missing','partial'].includes(us);
+  if(it.att==='done'&&it.pr==='signed'&&uaOk)return['ok','Done'];
+  const missing=[it.att!=='done'?'tracker':null,uaOk?null:'unit sheet',it.pr==='missing'?'report':it.pr==='posted'?'sign-off':null].filter(Boolean).join(', ');
+  return[over?'late':'open',missing];
+}
+function renderOverview(){
+  const all=buildTasks(),open=all.filter(t=>!state.done.has(t.id));
+  const over=open.filter(isOver).length;
+  const week=open.filter(t=>t.due&&!isOver(t)).length;
+  const shown=state.showAll?all:all.slice(0,6);
+  const strips=NIGHTS.slice(-3).map(n=>`
+    <div class="card night"><div class="d"><b>${n.label}</b><span class="meta">${esc(n.op.replace('Op PALADIN','PALADIN'))}</span></div>
+      <div class="units">${[n.flight,'662','ALIC'].map(u=>{const[c,txt]=unitMark(n,u);return `<div class="u ${c}"><i aria-hidden="true"></i><span>${UNITS[u].short}</span><span>${esc(txt)}</span></div>`}).join('')}</div>
+    </div>`).join('')+UPCOMING.map((u,i)=>{const cols=PREP[u.prep].cols,tot=cols.reduce((a,c)=>a+c.items.length,0),dn=cols.reduce((a,c)=>a+c.items.filter(x=>x[2]).length,0);
+    return `<a class="card night ${i===0?'next':''}" href="#prep" data-goprep="${u.prep}" style="color:inherit;text-decoration:none">
+      <div class="d"><b>${u.label}</b><span class="meta">${i===0?'Next':'Upcoming'}</span></div>
+      <div class="units"><div class="u"><i aria-hidden="true"></i><span>Prep</span><span class="mono">${dn} of ${tot}</span></div></div>
+      <div class="prog" aria-hidden="true"><i style="width:${Math.round(dn/tot*100)}%"></i></div></a>`}).join('');
+  return `
+  <section><h1>Thursday 19 November</h1>
+    <p class="sub">${esc(weekLabel(NOW))}. ${over} overdue and ${week} due before the weekend across No. 18, 662 and ALIC</p></section>
+  <section>${cycleStrip()}</section>
+  <section><div class="head"><h2>Op nights</h2><span class="meta">48h deadline after each night</span></div>
+    <div class="strip">${strips}</div>
+    <div class="legend meta"><span><i style="background:var(--pos)"></i>Done</span><span><i style="background:var(--caution)"></i>Open</span><span><i style="background:var(--neg)"></i>Past deadline</span></div></section>
+  <section><div class="head"><h2>Needs you</h2><span class="meta">${open.length} open</span></div>
+    <div class="card list">${shown.map(taskRow).join('')}
+      ${all.length>6?`<div class="more"><button class="link" data-more>${state.showAll?'Show fewer':`Show ${all.length-6} more`}</button></div>`:''}</div></section>
+  ${renderRoster()}`;
+}
+function renderRoster(){
+  const d=rosterDiff(),U=u=>UNIT_LABEL[u]||u;
+  const line=x=>({rank:[`${x.name}`,`${U(x.unit)}`,`${x.from||'no rank'} → ${x.to}`],
+    add:[x.name,`Add to ${U(x.to)}`,x.rank],move:[x.name,`Move ${U(x.from)} → ${U(x.to)}`,x.rank],
+    remove:[x.name,`Remove from ${U(x.unit)}`,`${x.rank}, not in the JAC ORBAT`]}[x.kind]);
+  return `<section id="roster"><div class="head"><h2>Unit roster</h2><a class="link" href="${SRC.roster.url}" target="_blank" rel="noopener">Open ORBAT 2.0</a></div>
+    <p class="note-line" style="margin:-4px 0 12px">Unit Attendance takes its names and ranks from ORBAT 2.0. JAC HQ keeps the JAC part in line with our ORBAT</p>
+    <div class="card list">${d.length?d.map((x,i)=>{const[a,b,c]=line(x),id='r-'+i;return `<div class="row ${state.done.has('roster-'+i)?'done':''}"><input type="checkbox" id="${id}" data-done="roster-${i}" ${state.done.has('roster-'+i)?'checked':''} aria-label="Mark changed">
+      <label for="${id}" style="min-width:0;cursor:pointer"><span class="t">${esc(a)}</span><span class="meta">${esc(b)}</span></label><div class="right"><span class="mono" style="color:var(--fg2)">${esc(c)}</span></div></div>`}).join('')
+      :'<div class="row"><span></span><span class="t">ORBAT 2.0 matches the JAC ORBAT</span><span></span></div>'}</div></section>`;
+}
+function cycleStrip(){
+  const bl=cycleBlocks(),w=weekOf(NOW),i=w?bl.findIndex(b=>b.id===w.b.id):0,win=bl.slice(Math.max(0,i-1),i+3);
+  const kindName={op:'Operation',admin:'Admin',pdt:'PDT'};
+  return `<div class="head"><h2>Deployment cycle</h2><a class="link" href="#roles">Edit cycle</a></div>
+  <div class="cyc">${win.map(b=>{const now=w&&b.id===w.b.id,past=b.end<NOW;
+    return `<div class="${now?'now':past?'past':''}" style="--w:${Math.max(b.weeks,1.6)}"><b>${esc(b.kind==='op'?b.name:kindName[b.kind])}</b>
+      <span class="mono">${past?'ended':'from'} ${shortDate(past?b.end:b.start)}</span>
+      <span class="wk">${now?`Week ${w.n} of ${b.weeks}`:`${b.weeks} week${b.weeks>1?'s':''}`}</span>
+      <i class="ticks">${Array.from({length:b.weeks},(_,k)=>`<em class="${now&&k<w.n?'on':''}"></em>`).join('')}</i></div>`}).join('')}</div>`;
+}
+function renderCycleEditor(){
+  const bl=cycleBlocks();
+  return `<section><div class="head"><h2>Deployment cycle</h2><span class="meta">Week labels, deadlines and op names across the cockpit come from here</span></div>
+  <div class="card"><div class="tbl"><table>
+    <thead><tr><th>Type</th><th>Name</th><th>Weeks</th><th>Dates</th><th></th></tr></thead>
+    <tbody>${bl.map((b,i)=>{const now=weekOf(NOW)?.b.id===b.id;return `<tr>
+      <td><select id="ck-${b.id}" data-cyc-kind="${i}" aria-label="Type">${[['op','Operation'],['admin','Admin'],['pdt','PDT']].map(([k,l])=>`<option value="${k}" ${k===b.kind?'selected':''}>${l}</option>`).join('')}</select></td>
+      <td><input type="text" id="cn-${b.id}" data-cyc-name="${i}" value="${esc(b.name)}" aria-label="Name" style="width:100%;min-width:140px"></td>
+      <td><input type="number" id="cw-${b.id}" data-cyc-weeks="${i}" value="${b.weeks}" min="1" max="20" aria-label="Weeks" style="width:64px;height:32px;padding:0 8px;border:1px solid var(--line-strong);border-radius:8px;background:var(--card);color:var(--fg);font:inherit"></td>
+      <td class="mono" style="white-space:nowrap">${shortDate(b.start)} – ${shortDate(b.end)}${now?' <span style="color:var(--accent-ink)">now</span>':''}</td>
+      <td style="text-align:right;white-space:nowrap"><button class="link" data-cyc-ins="${i}">Add week after</button><button class="link" data-cyc-del="${i}" style="margin-left:16px">Remove</button></td></tr>`}).join('')}
+    </tbody></table></div>
+    <div class="foot" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><label for="anchor">Cycle starts Monday</label><input type="date" id="anchor" value="${CYCLE.anchor}" style="height:32px;padding:0 8px;border:1px solid var(--line-strong);border-radius:8px;background:var(--card);color:var(--fg);font:inherit"><span>To shift an admin week, change its weeks. Everything after it moves along</span></div></div></section>`;
+}
+function taskRow(t){
+  const d=state.done.has(t.id),id='t-'+t.id;
+  const act=d?'':{ping:state.nudged.has(t.id)?'<button class="link" disabled>Reminded</button>':`<button class="link" data-nudge="${t.id}">Remind ${esc(t.who)}</button>`,
+    open:'<button class="link" data-open>Open</button>',loa:'<a class="link" href="#loa">Review</a>',
+    ua:`<a class="link" href="${SRC.ua.url}" target="_blank" rel="noopener">Open sheet</a>`,
+    roster:'<button class="link" data-scroll="roster">Review</button>'}[t.act];
+  return `<div class="row ${d?'done':''}"><input type="checkbox" id="${id}" data-done="${t.id}" ${d?'checked':''} aria-label="Mark done">
+    <label for="${id}" style="min-width:0;cursor:pointer"><span class="t">${esc(t.title)}</span><span class="meta">${esc(t.ctx)}</span></label>
+    <div class="right">${t.due?`<span class="mono due ${isOver(t)&&!d?'over':''}">${dtg(t.due)}</span>`:''}${act}</div></div>`;
+}
+
+function renderLoa(){
+  return `
+  <section><h1>LOA check</h1><p class="sub">LOA threads from the flight forums against what was entered in the attendance tracker. Excused needs an LOA posted at least 3 hours before the night</p></section>
+  <section class="card">
+    <div class="loa headrow"><span>Member</span><span>Forum LOA</span><span>Result</span><span></span></div>
+    ${LOAS.map(l=>{const[c,txt]=loaState(l);const act=c==='late'?`<button class="link" data-resolve="${l.id}">Mark corrected</button>`:'';
+      return `<div class="loa"><div><span class="t">${esc(l.who)}</span><span class="meta">${UNITS[l.unit].short} · ${esc(l.night)}</span></div>
+        <div>${l.loa?`<span>Posted ${esc(l.loa)}</span>`:'<span style="color:var(--fg3)">None</span>'}<span class="meta" style="display:block">Tracker: ${l.att?esc(l.att):'not entered yet'}</span></div>
+        <span class="st ${c}">${esc(txt)}</span><div>${act}</div></div>`}).join('')}
+  </section>`;
+}
+
+function renderPrep(){
+  const p=PREP[state.prepNight];
+  return `
+  <section class="head" style="align-items:end;margin:0"><div><h1>Night prep</h1><p class="sub">${esc(weekLabel(p.date))}, step off 1900Z. Each Flight IC ticks their own column</p></div>
+    <div class="seg" role="group" aria-label="Night">${Object.keys(PREP).map(k=>`<button aria-pressed="${k===state.prepNight}" data-night="${k}">${k}</button>`).join('')}</div></section>
+  <section class="cols">${p.cols.map((c,ci)=>{const dn=c.items.filter(i=>i[2]).length;return `
+    <div class="card col"><div class="ch"><div><h2>${esc(UNITS[c.unit].short)}</h2><span class="mono" style="color:var(--fg3)">${dn} of ${c.items.length}</span></div>
+      <div class="prog" aria-hidden="true"><i style="width:${Math.round(dn/c.items.length*100)}%"></i></div></div>
+      ${c.items.map((it,ii)=>{const id=`chk-${state.prepNight.replace(/\W/g,'')}-${ci}-${ii}`;return `<div class="check"><input type="checkbox" id="${id}" data-prep="${ci}-${ii}" ${it[2]?'checked':''}><label for="${id}">${esc(it[0])}${it[1]?`<small>${esc(it[1])}</small>`:''}</label></div>`}).join('')}
+    </div>`}).join('')}</section>
+  ${renderLogi(p.date)}`;
+}
+function renderLogi(dateStr){
+  const fl=FLIGHT_OF_DAY[WD(dateStr)],due=LOGI.filter(o=>o.eta===dateStr&&o.flight===fl),recent=LOGI.filter(o=>o.flight===fl).slice(-3);
+  const by={Alpha:0,Bravo:0,Charlie:0};let rej=0;LOGI.forEach(o=>{if(o.flight in by)by[o.flight]++;if(o.status==='Rejected')rej++});
+  const max=Math.max(...Object.values(by),1),fmt=s=>s?shortDate(mon(s)):'–';
+  const row=o=>`<div class="row" style="grid-template-columns:96px minmax(0,1fr) auto"><span class="mono" style="color:var(--fg2)">${esc(o.ref)}</span>
+    <span style="min-width:0"><span class="t">${esc(o.type.toLowerCase().replace(/^./,c=>c.toUpperCase()))} to ${esc(o.to)}</span><span class="meta">${esc(o.coy)} · from ${esc(o.from)} · shipper ${esc(o.ship||'not set')}</span></span>
+    <span class="right"><span class="st ${o.status==='Completed'?'ok':o.status==='Rejected'?'late':'open'}">${esc(o.status||'Open')}</span>${o.link?`<a class="link" href="${esc(o.link)}" target="_blank" rel="noopener">Thread</a>`:''}</span></div>`;
+  return `<section><div class="head"><h2>Logistics for ${esc(fl)} Flight</h2><a class="link" href="${SRC.logi.url}" target="_blank" rel="noopener">Open logistics sheet</a></div>
+    <div class="orbat">
+      <div><div class="card list">${due.length?due.map(row).join(''):`<div class="row" style="grid-template-columns:minmax(0,1fr)"><span><span class="t">No orders due on ${fmt(dateStr)}</span><span class="meta">Orders show up here once they are in Requested Logistics with this flight and ETA</span></span></div>`}</div>
+        ${due.length?'':`<p class="note-line" style="margin:16px 0 8px">Last orders ${esc(fl)} flew</p><div class="card list">${recent.map(row).join('')}</div>`}</div>
+      <div class="card" style="padding:16px;display:grid;gap:12px;align-content:start"><h2>Op PALADIN</h2><p class="note-line" style="margin:0">${LOGI.length} orders, ${rej} rejected</p>
+        <div class="demand">${Object.entries(by).map(([f,n])=>`<div><span>${f} Flight</span><b>${n}</b><div class="meter"><i style="width:${Math.round(n/max*100)}%"></i></div></div>`).join('')}</div></div>
+    </div></section>`;
+}
+function renderSources(){
+  return `<section><div class="head"><h2>Data sources</h2><span class="meta">Everything the cockpit reads. Nothing is written back in the prototype</span></div>
+    <div class="card list">${Object.values(SRC).map(s=>`<div class="row" style="grid-template-columns:minmax(0,1fr) auto"><span style="min-width:0"><span class="t">${esc(s.name)}</span><span class="meta">${esc(s.state)}</span></span><span class="right"><a class="link" href="${esc(s.url)}" target="_blank" rel="noopener">Open</a></span></div>`).join('')}</div></section>`;
+}
+
+function renderRoles(){
+  const u=state.roleUnit,m=state.roles[u],t=state.templates[u],RANKS=window.RANKS_BY_UNIT[u];
+  return `
+  <section><h1>Setup</h1><p class="sub">Maintained by JAC HQ and the squadron HQs. Changes here last until reload in the prototype</p></section>
+  ${renderCycleEditor()}
+  ${renderSources()}
+  <section class="head" style="align-items:end;margin:0"><div><h2 style="font-size:20px;line-height:26px">Roles and tasks</h2><p class="sub">Each squadron HQ sets what its ranks can do here and which recurring tasks they own</p></div>
+    <select id="roleunit" aria-label="Squadron">${[['18','No. 18 Squadron'],['662','No. 662 Squadron'],['ALIC','ALIC']].map(o=>`<option value="${o[0]}" ${o[0]===u?'selected':''}>${o[1]}</option>`).join('')}</select></section>
+  <section><div class="head"><h2>Access by rank</h2><span class="meta">Ranks from SOP 9-7</span></div>
+    <div class="card"><div class="tbl"><table class="matrix"><thead><tr><th>Rank</th>${PERMS.map(p=>`<th>${p}</th>`).join('')}</tr></thead>
+      <tbody>${RANKS.map((r,ri)=>`<tr><td>${esc(r)}</td>${PERMS.map((p,pi)=>`<td><input type="checkbox" id="perm-${u}-${ri}-${pi}" aria-label="${esc(r)}, ${esc(p)}" data-perm="${ri}-${pi}" ${m[ri][pi]?'checked':''}></td>`).join('')}</tr>`).join('')}</tbody></table></div>
+      <div class="foot">Changes in this prototype last until reload</div></div></section>
+  <section><div class="head"><h2>Recurring tasks</h2><span class="meta">From the squadron’s Roles and Responsibilities doc</span></div>
+    <div class="card"><div class="tbl"><table><thead><tr><th>Task</th><th>Owner</th><th>Deadline</th><th></th></tr></thead>
+      <tbody>${t.map((row,i)=>`<tr><td>${esc(row[0])}</td><td><select id="own-${u}-${i}" data-owner="${i}" aria-label="Owner of ${esc(row[0])}">${RANKS.map(r=>`<option ${r===row[1]?'selected':''}>${esc(r)}</option>`).join('')}</select></td><td class="meta">${esc(row[2])}</td><td style="text-align:right"><button class="link" data-deltask="${i}">Remove</button></td></tr>`).join('')}
+      <tr><td><input type="text" id="newtask" placeholder="New task" style="width:100%"></td><td><select id="newowner" aria-label="Owner of new task">${RANKS.map(r=>`<option>${esc(r)}</option>`).join('')}</select></td><td><input type="text" id="newdl" placeholder="48h after op" style="width:136px" aria-label="Deadline"></td><td style="text-align:right"><button class="btn" id="addtask">Add</button></td></tr>
+      </tbody></table></div></div></section>`;
+}
+
+/* ---------- Router and events ---------- */
+function route(){let k=location.hash.slice(1);if(!VIEWS[k])k='orbat';renderTabs(k);$('#view').innerHTML=VIEWS[k][1]();renderSheet()}
+window.addEventListener('hashchange',()=>{state.open=null;route();window.scrollTo(0,0)});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&state.open){const id=state.open;state.open=null;renderSheet();document.querySelector(`[data-person="${id}"]`)?.focus()}});
+document.addEventListener('click',e=>{
+  const g=e.target.closest('[data-goprep]');if(g){state.prepNight=g.dataset.goprep;return}
+  const b=e.target.closest('button,.scrim');if(!b)return;const d=b.dataset;
+  if(d.person){state.open=d.person;renderSheet();return}
+  if('close'in d){const id=state.open;state.open=null;renderSheet();document.querySelector(`[data-person="${id}"]`)?.focus();return}
+  if(d.filter){state.filter=d.filter;route();return}
+  if(d.scroll){document.getElementById(d.scroll)?.scrollIntoView({behavior:'smooth',block:'start'});return}
+  if(d.cycIns!==undefined){CYCLE.blocks.splice(+d.cycIns+1,0,{id:'b'+Date.now(),kind:'admin',name:'Admin',weeks:1});route();return}
+  if(d.cycDel!==undefined){if(CYCLE.blocks.length>1)CYCLE.blocks.splice(+d.cycDel,1);route();return}
+  if(d.nominate){state.nominated.add(state.open+d.nominate);toast(`Nominated for ${d.nominate}`);renderSheet();return}
+  if(d.pass){ORBAT.people.find(x=>x.id===state.open).done.add(d.pass);toast(`${d.pass} marked passed. Prototype, sheet unchanged`);route();return}
+  if(d.board){state.boards.add(d.board);toast('Promotion drafted for the Admin Centre. Prototype, nothing posted');renderSheet();return}
+  if('more'in d){state.showAll=!state.showAll;route()}
+  else if(d.nudge){state.nudged.add(d.nudge);toast('Forum PM drafted. Prototype, nothing sent');route()}
+  else if(d.resolve){state.resolved.add(d.resolve);route()}
+  else if('open'in d){toast('Would open the forum thread or Drive file')}
+  else if(d.night){state.prepNight=d.night;route()}
+  else if(d.deltask){state.templates[state.roleUnit].splice(+d.deltask,1);route()}
+  else if(b.id==='addtask'){const n=$('#newtask').value.trim();if(!n){toast('Enter a task name first');return}state.templates[state.roleUnit].push([n,$('#newowner').value,$('#newdl').value.trim()||'No deadline']);route()}
+});
+document.addEventListener('change',e=>{const el=e.target,d=el.dataset;
+  if(d.done){el.checked?state.done.add(d.done):state.done.delete(d.done);route()}
+  else if(d.prep){const[c,i]=d.prep.split('-').map(Number);PREP[state.prepNight].cols[c].items[i][2]=el.checked;route()}
+  else if(d.perm){const[r,p]=d.perm.split('-').map(Number);state.roles[state.roleUnit][r][p]=el.checked?1:0}
+  else if(d.owner){state.templates[state.roleUnit][+d.owner][1]=el.value}
+  else if(el.id==='roleunit'){state.roleUnit=el.value;route()}
+  else if(el.id==='viewer'){state.viewer=el.value;route()}
+  else if(d.cycKind!==undefined){const b=CYCLE.blocks[+d.cycKind];b.kind=el.value;if(el.value!=='op')b.name=el.value==='pdt'?'PDT':'Admin';route()}
+  else if(d.cycName!==undefined){CYCLE.blocks[+d.cycName].name=el.value.trim()||'Unnamed';route()}
+  else if(d.cycWeeks!==undefined){CYCLE.blocks[+d.cycWeeks].weeks=Math.min(20,Math.max(1,parseInt(el.value)||1));route()}
+  else if(el.id==='anchor'&&el.value){const x=mon(el.value);x.setUTCDate(x.getUTCDate()-((x.getUTCDay()+6)%7));CYCLE.anchor=x.toISOString().slice(0,10);route()}
+});
+route();
+</script>

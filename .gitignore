@@ -1,0 +1,6 @@
+# Snapshots of the unit's sheets contain member names. Rebuild them locally, never commit them.
+data/
+dist/
+__pycache__/
+.DS_Store
+.claude/
